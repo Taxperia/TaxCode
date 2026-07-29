@@ -1,0 +1,29 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M5 4C3.34315 4 2 5.34315 2 7V17C2 18.6569 3.34315 20 5 20H13V18H5C4.44772 18 4 17.5523 4 17V7C4 6.44772 4.44772 6 5 6H7.78388C8.01539 6 8.23973 6.08033 8.41862 6.22727L10.8119 8.19318C11.3486 8.63402 12.0216 8.875 12.7161 8.875H19C19.5523 8.875 20 9.32272 20 9.875V10H22V9.875C22 8.21815 20.6569 6.875 19 6.875H12.7161C12.4846 6.875 12.2603 6.79467 12.0814 6.64773L9.6881 4.68182C9.15142 4.24098 8.47841 4 7.78388 4H5Z" fill="#52A044"/>
+  <defs>
+    <clipPath id="hexClip">
+      <path d="M19.232 11.592C19.07 11.5 18.878 11.5 18.716 11.592L14.453 14.067C14.291 14.159 14.2 14.332 14.2 14.516V19.477C14.2 19.66 14.301 19.833 14.453 19.925L18.716 22.401C18.878 22.492 19.07 22.492 19.232 22.401L23.494 19.925C23.656 19.833 23.747 19.66 23.747 19.477V14.516C23.747 14.332 23.646 14.159 23.494 14.067L19.232 11.592Z" />
+    </clipPath>
+    <linearGradient id="main" x1="20.873" y1="13.383" x2="17.478" y2="21.334" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3F8B3D"/>
+      <stop offset="0.64" stop-color="#3F873F"/>
+      <stop offset="0.93" stop-color="#3DA92E"/>
+      <stop offset="1" stop-color="#3DAE2B"/>
+    </linearGradient>
+    <linearGradient id="r1" x1="18.336" y1="17.396" x2="29.16" y2="11.588" gradientUnits="userSpaceOnUse">
+      <stop offset="0.14" stop-color="#3F873F"/>
+      <stop offset="0.4" stop-color="#52A044"/>
+      <stop offset="0.71" stop-color="#64B749"/>
+      <stop offset="0.91" stop-color="#6ABF4B"/>
+    </linearGradient>
+    <linearGradient id="r2" x1="14.255" y1="16.89" x2="23.88" y2="16.89" gradientUnits="userSpaceOnUse">
+      <stop offset="0.09" stop-color="#6ABF4B"/>
+      <stop offset="0.29" stop-color="#64B749"/>
+      <stop offset="0.6" stop-color="#52A044"/>
+      <stop offset="0.86" stop-color="#3F873F"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#main)" d="M19.232 11.592C19.07 11.5 18.878 11.5 18.716 11.592L14.453 14.067C14.291 14.159 14.2 14.332 14.2 14.516V19.477C14.2 19.66 14.301 19.833 14.453 19.925L18.716 22.401C18.878 22.492 19.07 22.492 19.232 22.401L23.494 19.925C23.656 19.833 23.747 19.66 23.747 19.477V14.516C23.747 14.332 23.646 14.159 23.494 14.067L19.232 11.592Z" />
+  <polygon fill="url(#r1)" clip-path="url(#hexClip)" points="18.974,11.27 23.705,14.129 18.974,22.736 14.234,19.872" />
+  <polygon fill="url(#r2)" clip-path="url(#hexClip)" points="18.974,11.27 14.234,14.129 18.974,22.736 23.705,19.872" />
+</svg>

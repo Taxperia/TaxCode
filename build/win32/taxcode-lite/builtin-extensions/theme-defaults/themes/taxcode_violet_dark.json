@@ -1,0 +1,56 @@
+{
+	"$schema": "vscode://schemas/color-theme",
+	"name": "TaxCode Violet",
+	"include": "./dark_modern.json",
+	"type": "dark",
+	"colors": {
+		"activityBar.activeBorder": "#a855f7",
+		"activityBarBadge.background": "#8b5cf6",
+		"button.background": "#7c3aed",
+		"button.hoverBackground": "#6d28d9",
+		"editor.findMatchBackground": "#7c3aed99",
+		"editor.selectionBackground": "#6d28d966",
+		"focusBorder": "#a855f7",
+		"inputOption.activeBorder": "#8b5cf6",
+		"list.highlightForeground": "#d8b4fe",
+		"panelTitle.activeBorder": "#8b5cf6",
+		"progressBar.background": "#8b5cf6",
+		"statusBar.debuggingBackground": "#7c3aed",
+		"statusBarItem.remoteBackground": "#7c3aed",
+		"tab.activeBorderTop": "#8b5cf6",
+		"tab.selectedBorderTop": "#a855f7",
+		"terminal.tab.activeBorder": "#a855f7",
+		"textLink.foreground": "#c084fc",
+		"textLink.activeForeground": "#e9d5ff",
+		"titleBar.activeForeground": "#f5e8ff",
+		"welcomePage.progress.foreground": "#a855f7"
+	},
+	"tokenColors": [
+		{
+			"scope": [
+				"entity.name.function",
+				"support.function"
+			],
+			"settings": {
+				"foreground": "#c084fc"
+			}
+		},
+		{
+			"scope": [
+				"keyword",
+				"storage"
+			],
+			"settings": {
+				"foreground": "#f472b6"
+			}
+		},
+		{
+			"scope": [
+				"string"
+			],
+			"settings": {
+				"foreground": "#c4b5fd"
+			}
+		}
+	]
+}

@@ -1,0 +1,35 @@
+name: Release or installer problem
+description: Report a problem with a published installer or release asset.
+title: "[Release]: "
+labels: ["release"]
+body:
+  - type: dropdown
+    id: asset
+    attributes:
+      label: Installer
+      options:
+        - TaxCodePluginsUserSetup.exe
+        - TaxCodeNoTelemetryUserSetup.exe
+        - TaxCodeLiteUserSetup.exe
+        - TaxCodeVDSUserSetup.exe
+    validations:
+      required: true
+  - type: input
+    id: release
+    attributes:
+      label: Release tag
+      placeholder: "Example: taxcode-v1.121.0"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Include install errors, hash mismatches, antivirus reports, or startup failures.
+    validations:
+      required: true
+  - type: textarea
+    id: hash
+    attributes:
+      label: SHA-256 result
+      description: Paste your local hash result if this is an integrity issue.

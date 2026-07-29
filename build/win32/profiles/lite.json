@@ -1,0 +1,37 @@
+{
+	"product": {
+		"nameShort": "TaxCodeLite",
+		"nameLong": "TaxCode Lite",
+		"applicationName": "taxcode-lite",
+		"dataFolderName": ".taxcode-lite",
+		"sharedDataFolderName": ".taxcode-lite-shared",
+		"showChatViewContainer": false,
+		"showAccountsActivity": false,
+		"showExtensionsViewContainer": false,
+		"defaultFileIconTheme": "vs-minimal",
+		"trustedExtensionAuthAccess": [],
+		"win32MutexName": "taxcode-lite",
+		"serverApplicationName": "taxcode-lite-server",
+		"serverDataFolderName": ".taxcode-lite-server",
+		"tunnelApplicationName": "taxcode-lite-tunnel",
+		"win32DirName": "TaxCode Lite",
+		"win32NameVersion": "TaxCode Lite",
+		"win32RegValueName": "TaxCodeLite",
+		"win32x64AppId": "{{B3ADEFAE-E1E4-4BB1-8B63-53BC881A896A}",
+		"win32arm64AppId": "{{C4B4B092-5F16-4550-8B5C-13D302EC98DF}",
+		"win32x64UserAppId": "{{955C7ACF-CAA6-4D1B-8A52-316400208BEC}",
+		"win32arm64UserAppId": "{{27D1FCE2-02F4-474A-B05F-09C51511BE7C}",
+		"win32AppUserModelId": "TaxCodeLite.App",
+		"win32ShellNameShort": "TaxCode &Lite",
+		"win32TunnelServiceMutex": "taxcode-lite-tunnelservice",
+		"win32TunnelMutex": "taxcode-lite-tunnel",
+		"linuxIconName": "taxcode-lite",
+		"urlProtocol": "taxcode-lite"
+	},
+	"installer": {
+		"settingsFile": "build/win32/taxcode-lite/settings.json",
+		"argvFile": "build/win32/taxcode-lite/argv.json",
+		"userExtensionsDir": "build/win32/taxcode-lite/user-extensions",
+		"builtinExtensionsDir": "build/win32/taxcode-lite/builtin-extensions"
+	}
+}

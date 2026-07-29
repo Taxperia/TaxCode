@@ -1,0 +1,87 @@
+{
+  "name": "antigravity-icons-supercharged-gray",
+  "displayName": "Antigravity Icons Supercharged - gray version",
+  "description": "⚡ A supercharged icon theme for VS Code and its forks. Built for collaboration and inspired by the core icons of the Antigravity IDE.",
+  "version": "0.7.2",
+  "publisher": "davidbabel",
+  "packageManager": "bun@1.1.20",
+  "engines": {
+    "vscode": "^1.88.0",
+    "bun": ">=1.1.20"
+  },
+  "scripts": {
+    "preinstall": "npx only-allow bun",
+    "postinstall": "git submodule init && git submodule update",
+    "contrib": "bun scripts/contribute.ts",
+    "sync-vendor": "git submodule update --remote --merge",
+    "build": "rm -rf ./build* && bun scripts/build.ts",
+    "package": "bash scripts/package.sh",
+    "lint": "bash scripts/lint.sh",
+    "format": "biome check --write .",
+    "test": "bun run lint",
+    "release": "bash scripts/release.sh",
+    "install-ext": "bash scripts/install-ext.sh",
+    "refresh": "bun run package && bun run install-ext"
+  },
+  "categories": [
+    "Other",
+    "Themes"
+  ],
+  "extensionKind": [
+    "ui",
+    "workspace"
+  ],
+  "contributes": {
+    "iconThemes": [
+      {
+        "id": "antigravity-icons-supercharged-gray",
+        "label": "Antigravity Icons (gray)",
+        "path": "./symbol-icon-theme.json"
+      }
+    ]
+  },
+  "icon": "images/icon-gray.png",
+  "galleryBanner": {
+    "color": "#e0e0e0",
+    "theme": "light"
+  },
+  "keywords": [
+    "antigravity",
+    "react",
+    "angular",
+    "icons",
+    "icon",
+    "theme",
+    "icon-theme",
+    "customization",
+    "file-icon-theme",
+    "file icons"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DavidBabel/antigravity-icons-supercharged.git"
+  },
+  "author": {
+    "email": "babel.david@gmail.com",
+    "name": "David Babel",
+    "url": "https://github.com/DavidBabel/antigravity-icons-supercharged"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/DavidBabel/antigravity-icons-supercharged/issues"
+  },
+  "homepage": "https://github.com/DavidBabel/antigravity-icons-supercharged#readme",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    },
+    "virtualWorkspaces": true
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.4",
+    "@types/node": "^25.3.0",
+    "ovsx": "^0.10.9",
+    "vsce": "^2.15.0"
+  }
+}

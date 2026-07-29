@@ -1,0 +1,35 @@
+{
+	"product": {
+		"nameShort": "TaxCodeVDS",
+		"nameLong": "TaxCode VDS Low RAM",
+		"applicationName": "taxcode-vds",
+		"dataFolderName": ".taxcode-vds",
+		"sharedDataFolderName": ".taxcode-vds-shared",
+		"showChatViewContainer": false,
+		"showAccountsActivity": false,
+		"showExtensionsViewContainer": false,
+		"win32MutexName": "taxcode-vds",
+		"serverApplicationName": "taxcode-vds-server",
+		"serverDataFolderName": ".taxcode-vds-server",
+		"tunnelApplicationName": "taxcode-vds-tunnel",
+		"win32DirName": "TaxCode VDS Low RAM",
+		"win32NameVersion": "TaxCode VDS Low RAM",
+		"win32RegValueName": "TaxCodeVDS",
+		"win32x64AppId": "{{A10B9AC9-778E-43F8-B648-D8F6AA2CF111}",
+		"win32arm64AppId": "{{23D759E7-8CB1-4D03-8680-E3441C0AB125}",
+		"win32x64UserAppId": "{{FC5A7165-9917-468A-B267-E51F2528B723}",
+		"win32arm64UserAppId": "{{C07E885D-4212-477E-9F4F-0D941DC7F5A1}",
+		"win32AppUserModelId": "TaxCodeVDS.App",
+		"win32ShellNameShort": "TaxCode &VDS",
+		"win32TunnelServiceMutex": "taxcode-vds-tunnelservice",
+		"win32TunnelMutex": "taxcode-vds-tunnel",
+		"linuxIconName": "taxcode-vds",
+		"urlProtocol": "taxcode-vds"
+	},
+	"installer": {
+		"settingsFile": "build/win32/profiles/vds/settings.json",
+		"argvFile": "build/win32/profiles/vds/argv.json",
+		"userExtensionsDir": "build/win32/profiles/_none/user-extensions",
+		"builtinExtensionsDir": "build/win32/profiles/_none/builtin-extensions"
+	}
+}

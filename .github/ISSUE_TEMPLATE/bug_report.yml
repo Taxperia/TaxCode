@@ -1,0 +1,56 @@
+name: Bug report
+description: Report a reproducible problem in TaxCode.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: edition
+    attributes:
+      label: Edition
+      options:
+        - TaxCodePlugins
+        - TaxCodeNoTelemetry
+        - TaxCodeLite
+        - TaxCodeVDS
+        - Source build
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: "Example: 1.121.0"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "Example: Windows 11 23H2 x64"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Provide the smallest set of steps that triggers the issue.
+      placeholder: "1. Open...\n2. Run...\n3. Observe..."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Add logs, screenshots, or screen recordings when useful. Do not include secrets.

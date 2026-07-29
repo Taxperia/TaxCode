@@ -1,0 +1,15 @@
+description: Privacy-focused Windows desktop code editor distribution built from VS Code OSS.
+homepage: https://github.com/Taxperia/TaxCode
+topics:
+  - taxcode
+  - vscode
+  - vscode-oss
+  - code-oss
+  - windows
+  - electron
+  - typescript
+  - privacy
+  - telemetry-disabled
+  - editor
+  - remote-desktop
+  - low-ram

@@ -1,0 +1,15 @@
+{
+	"telemetry.telemetryLevel": "off",
+	"workbench.colorTheme": "Dark Modern",
+	"workbench.iconTheme": "antigravity-icons-supercharged-gray",
+	"window.menuBarVisibility": "visible",
+	"liveshare.autoShareServers": false,
+	"liveshare.autoShareTerminals": false,
+	"liveshare.comments": false,
+	"liveshare.codeLens": false,
+	"liveshare.diagnosticLogging": false,
+	"liveshare.populateGitCoAuthors": "never",
+	"liveshare.publishWorkspaceInfo": false,
+	"liveshare.showVerboseNotifications": false,
+	"liveshare.showInStatusBar": "whileCollaborating"
+}

@@ -1,0 +1,44 @@
+{
+	"product": {
+		"nameShort": "TaxCodePlugins",
+		"nameLong": "TaxCode Plugins",
+		"applicationName": "taxcode-plugins",
+		"dataFolderName": ".taxcode-plugins",
+		"sharedDataFolderName": ".taxcode-plugins-shared",
+		"showChatViewContainer": true,
+		"win32MutexName": "taxcode-plugins",
+		"serverApplicationName": "taxcode-plugins-server",
+		"serverDataFolderName": ".taxcode-plugins-server",
+		"tunnelApplicationName": "taxcode-plugins-tunnel",
+		"win32DirName": "TaxCode Plugins",
+		"win32NameVersion": "TaxCode Plugins",
+		"win32RegValueName": "TaxCodePlugins",
+		"win32x64AppId": "{{0D5A8EB3-9E9D-4D04-883D-6E3048F46AE4}",
+		"win32arm64AppId": "{{0747D6CA-CBFB-41CC-8122-0A845BA297F3}",
+		"win32x64UserAppId": "{{D1B1A99D-1865-4D03-A2CB-AF92ED65A9F5}",
+		"win32arm64UserAppId": "{{570FDE68-CEB0-4A43-AE36-95357388CC1E}",
+		"win32AppUserModelId": "TaxCodePlugins.App",
+		"win32ShellNameShort": "TaxCode &Plugins",
+		"win32TunnelServiceMutex": "taxcode-plugins-tunnelservice",
+		"win32TunnelMutex": "taxcode-plugins-tunnel",
+		"linuxIconName": "taxcode-plugins",
+		"urlProtocol": "taxcode-plugins",
+		"extensionsGallery": {
+			"nlsBaseUrl": "https://www.vscode-unpkg.net/_lp/",
+			"serviceUrl": "https://marketplace.visualstudio.com/_apis/public/gallery",
+			"searchUrl": "https://marketplace.visualstudio.com/_apis/public/gallery/searchrelevancy/extensionquery",
+			"servicePPEUrl": "https://marketplace.vsallin.net/_apis/public/gallery",
+			"cacheUrl": "https://vscode.blob.core.windows.net/gallery/index",
+			"itemUrl": "https://marketplace.visualstudio.com/items",
+			"publisherUrl": "https://marketplace.visualstudio.com/publishers",
+			"resourceUrlTemplate": "https://{publisher}.vscode-unpkg.net/{publisher}/{name}/{version}/{path}",
+			"controlUrl": "https://az764295.vo.msecnd.net/extensions/marketplace.json"
+		}
+	},
+	"installer": {
+		"settingsFile": "build/win32/profiles/plugins/settings.json",
+		"argvFile": "build/win32/profiles/plugins/argv.json",
+		"userExtensionsDir": "build/win32/taxcode-lite/user-extensions",
+		"builtinExtensionsDir": "build/win32/profiles/shared/builtin-extensions"
+	}
+}

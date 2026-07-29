@@ -1,0 +1,33 @@
+{
+	"product": {
+		"nameShort": "TaxCodeNoTelemetry",
+		"nameLong": "TaxCode No Telemetry",
+		"applicationName": "taxcode-notelemetry",
+		"dataFolderName": ".taxcode-notelemetry",
+		"sharedDataFolderName": ".taxcode-notelemetry-shared",
+		"showChatViewContainer": true,
+		"win32MutexName": "taxcode-notelemetry",
+		"serverApplicationName": "taxcode-notelemetry-server",
+		"serverDataFolderName": ".taxcode-notelemetry-server",
+		"tunnelApplicationName": "taxcode-notelemetry-tunnel",
+		"win32DirName": "TaxCode No Telemetry",
+		"win32NameVersion": "TaxCode No Telemetry",
+		"win32RegValueName": "TaxCodeNoTelemetry",
+		"win32x64AppId": "{{B9FADB5C-89EA-432E-BEA7-B532694EC740}",
+		"win32arm64AppId": "{{0BA89A07-91ED-4427-9E7E-694A8B417BC8}",
+		"win32x64UserAppId": "{{8AFBBFFB-7344-4600-BA48-C0AB89273261}",
+		"win32arm64UserAppId": "{{D3C0B965-491B-4AD2-A087-988958D02208}",
+		"win32AppUserModelId": "TaxCodeNoTelemetry.App",
+		"win32ShellNameShort": "TaxCode No &Telemetry",
+		"win32TunnelServiceMutex": "taxcode-notelemetry-tunnelservice",
+		"win32TunnelMutex": "taxcode-notelemetry-tunnel",
+		"linuxIconName": "taxcode-notelemetry",
+		"urlProtocol": "taxcode-notelemetry"
+	},
+	"installer": {
+		"settingsFile": "build/win32/profiles/notelemetry/settings.json",
+		"argvFile": "build/win32/profiles/notelemetry/argv.json",
+		"userExtensionsDir": "build/win32/profiles/_none/user-extensions",
+		"builtinExtensionsDir": "build/win32/profiles/shared/builtin-extensions"
+	}
+}
