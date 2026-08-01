@@ -31,6 +31,13 @@
 	"linuxIconName": "taxcode",
 	"licenseFileName": "LICENSE.txt",
 	"reportIssueUrl": "https://github.com/Taxperia/TaxCode/issues/new",
+	"downloadUrl": "https://github.com/Taxperia/TaxCode/releases/latest",
+	"releaseNotesUrl": "https://github.com/Taxperia/TaxCode/releases/latest",
+	"taxcodeUpdate": {
+		"enabled": true,
+		"releaseApiUrl": "https://api.github.com/repos/Taxperia/TaxCode/releases/latest",
+		"releaseUrl": "https://github.com/Taxperia/TaxCode/releases/latest"
+	},
 	"nodejsArtifactFeed": "",
 	"electronArtifactFeed": "",
 	"urlProtocol": "taxcode",

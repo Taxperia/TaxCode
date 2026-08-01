@@ -131,6 +131,11 @@ export interface IProductConfiguration {
 
 	readonly downloadUrl?: string;
 	readonly updateUrl?: string;
+	readonly taxcodeUpdate?: {
+		readonly enabled?: boolean;
+		readonly releaseApiUrl?: string;
+		readonly releaseUrl?: string;
+	};
 	readonly webUrl?: string;
 	readonly webEndpointUrlTemplate?: string;
 	readonly webviewContentExternalBaseUrlTemplate?: string;

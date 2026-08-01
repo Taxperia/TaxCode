@@ -381,6 +381,7 @@ import './contrib/themes/browser/themes.contribution.js';
 
 // Update
 import './contrib/update/browser/update.contribution.js';
+import './contrib/update/browser/taxcodeGithubUpdate.contribution.js';
 
 // Surveys
 import './contrib/surveys/browser/nps.contribution.js';

@@ -16,7 +16,7 @@
   <img alt="Upstream" src="https://img.shields.io/badge/upstream-VS%20Code%20OSS-1f6feb">
 </p>
 
-TaxCode is a customized distribution of [VS Code OSS](https://github.com/microsoft/vscode) for users who want a familiar editor with a stricter release profile: telemetry disabled, reproducible Windows variants, clear release artifacts, and documented security checks.
+TaxCode is a customized distribution of [VS Code OSS](https://github.com/microsoft/vscode) for users who want a familiar editor with a stricter release profile: telemetry disabled, reproducible Windows variants, clear release artifacts, GitHub release update notices, and documented security checks.
 
 The default source tree represents the **plugin-enabled, telemetry-disabled** edition. Other editions are produced from the same source by build profiles; they are not separate forks.
 
@@ -47,9 +47,20 @@ TaxCode 1.131.0
 
 The GitHub-generated source archive for the release tag is the source for all editions. Installer files are uploaded as Release assets and are not committed to git.
 
+## Updates
+
+TaxCode checks the latest GitHub Release after startup and shows an update notification when a newer `taxcode-v*` tag is available. The check uses GitHub's public Releases API, sends no TaxCode telemetry, and can be disabled with:
+
+```json
+"taxcode.update.checkOnStartup": false
+```
+
+Manual checks are available from the Command Palette with `TaxCode: Check for Updates...`.
+
 ## Security Posture
 
 - Telemetry is disabled in every packaged edition.
+- GitHub update checks use a non-telemetry request and open the Release page instead of silently installing code.
 - Runtime dependency audits are performed before release.
 - Release notes include SHA-256 checksums for installer verification.
 - Signing keys, local profiles, build caches, and installer outputs are excluded from source control.
