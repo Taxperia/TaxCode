@@ -101,6 +101,7 @@ const desktopEntryPoints = [
 	'vs/sessions/sessions.desktop.main',
 	'vs/workbench/contrib/debug/node/telemetryApp',
 	'vs/platform/files/node/watcher/watcherMain',
+	'vs/platform/localTranscription/node/localTranscriptionMain',
 	'vs/platform/terminal/node/ptyHostMain',
 	'vs/platform/agentHost/node/agentHostMain',
 	'vs/platform/agentHost/node/diffWorkerMain',
@@ -248,6 +249,7 @@ const commonResourcePatterns = [
 	'vs/workbench/browser/media/code-icon.svg',
 	'vs/workbench/browser/media/miniicon.png',
 	'vs/workbench/browser/parts/editor/media/letterpress*.svg',
+	'vs/workbench/contrib/chat/browser/widget/media/chatPet/*.{gif,png}',
 	'vs/sessions/contrib/chat/browser/media/*.svg',
 	'vs/sessions/contrib/welcome/browser/media/themePreviews/*.svg'
 ];

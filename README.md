@@ -36,7 +36,7 @@ Each upstream VS Code version is published as one GitHub Release.
 Example:
 
 ```text
-TaxCode 1.121.0
+TaxCode 1.131.0
   TaxCodePluginsUserSetup.exe
   TaxCodeNoTelemetryUserSetup.exe
   TaxCodeLiteUserSetup.exe

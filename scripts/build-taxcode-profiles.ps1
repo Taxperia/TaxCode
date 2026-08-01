@@ -50,6 +50,7 @@ try {
 				}
 
 				$env:TAXCODE_SETUP_SOURCE_DIR = "$installerDrive\"
+				$env:TAXCODE_SKIP_SETUP_ICON = "1"
 				& npm.cmd run gulp "vscode-win32-$Arch-$InstallTarget-setup"
 				if ($LASTEXITCODE -ne 0) {
 					throw "Installer packaging failed for profile '$profileId'."
@@ -57,6 +58,7 @@ try {
 			}
 			finally {
 				Remove-Item Env:\TAXCODE_SETUP_SOURCE_DIR -ErrorAction SilentlyContinue
+				Remove-Item Env:\TAXCODE_SKIP_SETUP_ICON -ErrorAction SilentlyContinue
 				if ($installerDrive) {
 					& subst.exe $installerDrive /D | Out-Null
 				}

@@ -28,7 +28,9 @@ AppMutex={code:GetAppMutex}
 SetupMutex={code:GetSetupMutex}
 WizardImageFile="{#RepoDir}\resources\win32\inno-big-100.bmp,{#RepoDir}\resources\win32\inno-big-125.bmp,{#RepoDir}\resources\win32\inno-big-150.bmp,{#RepoDir}\resources\win32\inno-big-175.bmp,{#RepoDir}\resources\win32\inno-big-200.bmp,{#RepoDir}\resources\win32\inno-big-225.bmp,{#RepoDir}\resources\win32\inno-big-250.bmp"
 WizardSmallImageFile="{#RepoDir}\resources\win32\inno-small-100.bmp,{#RepoDir}\resources\win32\inno-small-125.bmp,{#RepoDir}\resources\win32\inno-small-150.bmp,{#RepoDir}\resources\win32\inno-small-175.bmp,{#RepoDir}\resources\win32\inno-small-200.bmp,{#RepoDir}\resources\win32\inno-small-225.bmp,{#RepoDir}\resources\win32\inno-small-250.bmp"
+#ifndef TaxCodeSkipSetupIcon
 SetupIconFile={#SetupIconPath}
+#endif
 UninstallDisplayIcon={app}\{#ExeBasename}.exe
 ChangesEnvironment=true
 ChangesAssociations=true
@@ -1774,15 +1776,6 @@ var
   RemoveAppxPackageResultCode: Integer;
 begin
   KillContextMenuComSurrogate();
-  // Remove the old context menu package
-  // Following condition can be removed in v1.111.
-  if QualityIsInsiders() and not SessionEndFileExists() and AppxPackageInstalled('Microsoft.VSCodeInsiders', RemoveAppxPackageResultCode) then begin
-    Log('Deleting old appx ' + AppxPackageFullname + ' installation...');
-    ShellExec('', 'powershell.exe', '-NoLogo -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -Command ' + AddQuotes('Remove-AppxPackage -Package ''' + AppxPackageFullname + ''''), '', SW_HIDE, ewWaitUntilTerminated, RemoveAppxPackageResultCode);
-    Log('Remove-AppxPackage for old appx completed with result code ' + IntToStr(RemoveAppxPackageResultCode) + '.');
-    DeleteFile(ExpandConstant('{app}\appx\code_insiders_explorer_{#Arch}.appx'));
-    DeleteFile(ExpandConstant('{app}\appx\code_insiders_explorer_command.dll'));
-  end;
   if not SessionEndFileExists() and AppxPackageInstalled(ExpandConstant('{#AppxPackageName}'), RemoveAppxPackageResultCode) then begin
     Log('Removing current ' + AppxPackageFullname + ' appx installation...');
 #if "user" == InstallTarget

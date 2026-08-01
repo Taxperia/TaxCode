@@ -5,22 +5,21 @@
 import assert from 'assert';
 import * as cp from 'child_process';
 import * as fs from 'fs';
-import gulp from 'gulp';
+import { gulp } from './lib/gulp/facade.ts';
 import * as path from 'path';
 import rcedit from 'rcedit';
 import vfs from 'vinyl-fs';
 import pkg from '../package.json' with { type: 'json' };
 import { getVersion } from './lib/getVersion.ts';
-import { getEffectiveProduct, getPackageOutputFolderName, getProductProfile, type ProductConfiguration } from './lib/productProfile.ts';
-import * as task from './lib/task.ts';
+import * as task from './lib/gulp/task.ts';
 import * as util from './lib/util.ts';
+import { getEffectiveProduct, getPackageOutputFolderName, getProductProfile, type ProductConfiguration } from './lib/productProfile.ts';
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 
 const repoPath = path.dirname(import.meta.dirname);
 const commit = getVersion(repoPath);
-const fallbackCommit = 'devbuild0000';
 const profile = getProductProfile();
 const product = getEffectiveProduct();
 const buildPath = (arch: string) => path.join(path.dirname(repoPath), getPackageOutputFolderName('win32', arch));
@@ -76,10 +75,10 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 
 		const quality = (product as ProductConfiguration & { quality?: string }).quality || 'dev';
 		const useVersionedUpdate = (product as ProductConfiguration & { win32VersionedUpdate?: boolean })?.win32VersionedUpdate;
-		const versionedResourcesFolder = useVersionedUpdate ? commit!.substring(0, 10) : '';
+		const versionedResourcesFolder = useVersionedUpdate ? (commit ?? 'devbuild0000').substring(0, 10) : '';
 		const issPath = path.join(import.meta.dirname, 'win32', 'code.iss');
 		const originalProductJsonPath = path.join(sourcePath, versionedResourcesFolder, 'resources/app/product.json');
-		const productJsonPath = path.join(outputPath, 'product.json');
+		const productJsonPath = path.join(path.dirname(outputPath), `${product.nameShort}.product.json`);
 		const productJson = JSON.parse(fs.readFileSync(originalProductJsonPath, 'utf8'));
 		productJson['target'] = target;
 
@@ -89,7 +88,7 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 			DirName: product.win32DirName,
 			Version: pkg.version,
 			RawVersion: pkg.version.replace(/-\w+$/, ''),
-			Commit: commit ?? fallbackCommit,
+			Commit: commit ?? 'devbuild0000',
 			NameVersion: product.win32NameVersion + (target === 'user' ? ' (User)' : ''),
 			ExeBasename: product.nameShort,
 			RegValueName: product.win32RegValueName,
@@ -129,6 +128,10 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 			}
 		}
 
+		if (process.env['TAXCODE_SKIP_SETUP_ICON'] === '1') {
+			definitions['TaxCodeSkipSetupIcon'] = 'true';
+		}
+
 		fs.writeFileSync(productJsonPath, JSON.stringify(productJson, undefined, '\t'));
 
 		packageInnoSetup(issPath, { definitions }, cb as (err?: Error | null) => void);
@@ -137,7 +140,7 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 
 function defineWin32SetupTasks(arch: string, target: string) {
 	const cleanTask = util.rimraf(setupDir(arch, target));
-	gulp.task(task.define(`vscode-win32-${arch}-${target}-setup`, task.series(cleanTask, buildWin32Setup(arch, target))));
+	task.task(task.define(`vscode-win32-${arch}-${target}-setup`, task.series(cleanTask, buildWin32Setup(arch, target))));
 }
 
 defineWin32SetupTasks('x64', 'system');
@@ -159,5 +162,5 @@ function updateIcon(executablePath: string): task.CallbackTask {
 	};
 }
 
-gulp.task(task.define('vscode-win32-x64-inno-updater', task.series(copyInnoUpdater('x64'), updateIcon(path.join(buildPath('x64'), 'tools', 'inno_updater.exe')))));
-gulp.task(task.define('vscode-win32-arm64-inno-updater', task.series(copyInnoUpdater('arm64'), updateIcon(path.join(buildPath('arm64'), 'tools', 'inno_updater.exe')))));
+task.task(task.define('vscode-win32-x64-inno-updater', task.series(copyInnoUpdater('x64'), updateIcon(path.join(buildPath('x64'), 'tools', 'inno_updater.exe')))));
+task.task(task.define('vscode-win32-arm64-inno-updater', task.series(copyInnoUpdater('arm64'), updateIcon(path.join(buildPath('arm64'), 'tools', 'inno_updater.exe')))));
