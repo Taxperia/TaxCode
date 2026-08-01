@@ -66,6 +66,12 @@ dist
 /TaxCode*UserSetup.exe
 /miyotu-codesign.*
 
+# TaxCode profile seed extensions are generated locally before installer packaging.
+/build/win32/taxcode-lite/builtin-extensions/
+/build/win32/taxcode-lite/extensions/
+/build/win32/taxcode-lite/user-extensions/
+/build/win32/taxcode-lite/setup.ico
+
 # Keep upstream GitHub workflows out of this distribution repo unless explicitly re-enabled.
 /.github/workflows/
 

@@ -27,6 +27,28 @@ function Get-FreeInstallerDrive {
 	throw "A free drive letter is required for installer packaging."
 }
 
+function Ensure-TaxCodeLiteSeeds {
+	$userExtensionsSeedPath = Join-Path $repoRoot "build\win32\taxcode-lite\user-extensions"
+	$builtinExtensionsSeedPath = Join-Path $repoRoot "build\win32\taxcode-lite\builtin-extensions"
+
+	if ((Test-Path $userExtensionsSeedPath) -and (Test-Path $builtinExtensionsSeedPath)) {
+		return
+	}
+
+	$prepareScript = Join-Path $repoRoot "scripts\prepare-taxcode-lite.ps1"
+	$defaultLiveShareSource = Join-Path $repoRoot ".vds-profile\extensions\ms-vsliveshare.vsliveshare"
+
+	if (Test-Path $defaultLiveShareSource) {
+		& $prepareScript
+		if ($LASTEXITCODE -ne 0) {
+			throw "Could not prepare TaxCode lite seed extensions."
+		}
+		return
+	}
+
+	Write-Warning "TaxCode lite seed extensions are not present. Run scripts\prepare-taxcode-lite.ps1 before installer packaging if you want the seeded Live Share and theme extensions included."
+}
+
 Push-Location $repoRoot
 try {
 	foreach ($profileId in $selectedProfiles) {
@@ -39,6 +61,10 @@ try {
 		}
 
 		if ($Setup) {
+			if (@("lite", "plugins") -contains $profileId) {
+				Ensure-TaxCodeLiteSeeds
+			}
+
 			$profileConfig = Get-Content (Join-Path $repoRoot "build/win32/profiles/$profileId.json") -Raw | ConvertFrom-Json
 			$appPath = Join-Path (Split-Path $repoRoot -Parent) "$($profileConfig.product.nameShort)-win32-$Arch"
 			$installerDrive = Get-FreeInstallerDrive
