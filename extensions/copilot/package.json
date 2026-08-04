@@ -7276,7 +7276,7 @@
     "ajv": "^8.18.0",
     "applicationinsights": "^3.15.1",
     "best-effort-json-parser": "^1.2.1",
-    "diff": "^8.0.4",
+    "diff": "^9.0.0",
     "express": "^5.2.1",
     "ignore": "^7.0.5",
     "isbinaryfile": "^5.0.4",
@@ -7284,7 +7284,7 @@
     "lru-cache": "^11.1.0",
     "markdown-it": "^14.2.0",
     "minimatch": "^10.2.1",
-    "undici": "^7.24.1",
+    "undici": "^7.29.0",
     "vscode-tas-client": "^0.1.84",
     "web-tree-sitter": "^0.23.0"
   },
