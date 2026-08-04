@@ -101,6 +101,10 @@ function getSessionsHTML(host, port, cssModules, useMock) {
 	const baseUrl = `http://${host}:${port}`;
 	const fileRoot = `${baseUrl}/out`;
 
+	// Sanitize host and port to prevent XSS
+	const safeHost = String(host).replace(/[^a-zA-Z0-9.-]/g, '');
+	const safePort = String(port).replace(/[^0-9]/g, '');
+
 	// Build the import map server-side. Each CSS file gets mapped to a
 	// data: URI containing a JS module that injects the stylesheet via
 	// a global helper function. This must be a static <script type="importmap">

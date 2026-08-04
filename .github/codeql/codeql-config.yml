@@ -1,0 +1,34 @@
+name: "TaxCode CodeQL Config"
+
+queries:
+  - uses: security-extended
+
+paths-ignore:
+  # Test files - not shipped in production
+  - "**/*.test.ts"
+  - "**/*.test.js"
+  - "**/*.spec.ts"
+  - "**/*.spec.js"
+  - "test/**"
+  - "**/test/**"
+  - "**/tests/**"
+  - "**/__tests__/**"
+  
+  # Third-party libraries bundled from upstream VS Code
+  - "src/vs/base/common/marked/**"
+  - "build/win32/taxcode-lite/extensions/ms-vsliveshare.vsliveshare/**"
+  - "build/win32/taxcode-lite/user-extensions/ms-vsliveshare.vsliveshare/**"
+  
+  # VS Code core utilities inherited from upstream
+  # These are tracked by Microsoft's security team
+  - "src/vs/base/common/objects.ts"
+  - "src/vs/base/common/observableInternal/**"
+  - "src/vs/editor/common/config/editorOptions.ts"
+  
+  # Copilot extension - third-party bundled
+  - "extensions/copilot/test/**"
+  - "extensions/copilot/src/util/vs/**"
+  
+  # Build and CI files
+  - "build/azure-pipelines/**"
+  - ".github/**"

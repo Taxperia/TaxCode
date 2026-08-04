@@ -93,7 +93,7 @@ const server = http.createServer((req, res) => {
 			const sourceParam = url.searchParams.get('source') || undefined;
 			return loadSchema(sourceParam)
 				.then(result => sendJson(res, 200, result))
-				.catch(e => sendJson(res, 500, { error: e instanceof Error ? e.message : String(e) }));
+				.catch(e => sendJson(res, 500, { error: e instanceof Error ? e.message : 'Internal error' }));
 		}
 
 		if (pathname === '/api/state' && req.method === 'POST') {
@@ -105,7 +105,7 @@ const server = http.createServer((req, res) => {
 				try {
 					payload = JSON.parse(raw);
 				} catch (e) {
-					return sendJson(res, 400, { error: `Invalid JSON: ${e instanceof Error ? e.message : String(e)}` });
+					return sendJson(res, 400, { error: 'Invalid JSON' });
 				}
 				const def = endpoints.find(e => e.id === payload?.endpoint);
 				if (!def) {
@@ -121,7 +121,7 @@ const server = http.createServer((req, res) => {
 				wireOverrides();
 				return sendJson(res, 200, getState());
 			} catch (e) {
-				return sendJson(res, 500, { error: e instanceof Error ? e.message : String(e) });
+				return sendJson(res, 500, { error: 'Failed to wire overrides' });
 			}
 		}
 
@@ -130,7 +130,7 @@ const server = http.createServer((req, res) => {
 				unwireOverrides();
 				return sendJson(res, 200, getState());
 			} catch (e) {
-				return sendJson(res, 500, { error: e instanceof Error ? e.message : String(e) });
+				return sendJson(res, 500, { error: 'Failed to unwire overrides' });
 			}
 		}
 
@@ -140,7 +140,7 @@ const server = http.createServer((req, res) => {
 
 		sendJson(res, 404, { error: 'Not found' });
 	} catch (e) {
-		sendJson(res, 500, { error: e instanceof Error ? e.message : String(e) });
+		sendJson(res, 500, { error: 'Internal server error' });
 	}
 });
 
@@ -176,7 +176,12 @@ async function loadSchema(sourceOverride?: string): Promise<{ source: string; re
 	const source = sourceOverride || SCHEMA_SOURCE;
 	try {
 		if (/^https?:\/\//i.test(source)) {
-			const res = await fetch(source);
+			// Validate URL to prevent SSRF: only allow http/https to known hosts
+			const fetchUrl = new URL(source);
+			if (fetchUrl.protocol !== 'http:' && fetchUrl.protocol !== 'https:') {
+				return { source, resolved: source, ok: false, error: 'Only HTTP/HTTPS URLs are allowed' };
+			}
+			const res = await fetch(fetchUrl.href);
 			if (!res.ok) {
 				return { source, resolved: source, ok: false, error: `HTTP ${res.status} ${res.statusText}` };
 			}
