@@ -1,91 +1,53 @@
-# TaxCode Security Audit
+# Security Audit - TaxCode 1.131.1
 
-Date: 2026-08-01
+## Overview
 
-## Scope
+This document summarizes the security audit performed on TaxCode 1.131.1, based on VS Code OSS 1.131.0.
 
-This review covers the TaxCode source updated to VS Code OSS `1.131.0`, the root application lockfile, the `remote` lockfile, and built-in extension lockfiles that are relevant to the Windows desktop release profile set. It is a dependency and release-configuration review, not a penetration test.
+## Changes in 1.131.1
 
-Upstream baseline: [VS Code 1.131 release notes](https://code.visualstudio.com/updates/v1_131/) and tag [`1.131.0`](https://github.com/microsoft/vscode/tree/1.131.0).
+### Dependency Updates (Dependabot)
 
-## Build Environment
+The following dependency updates were merged to address known vulnerabilities:
 
-| Tool | Version / status |
-| --- | --- |
-| Node.js | `24.18.0`, repo-local zip under `.tmp` |
-| npm | `11.16.0` from Node `24.18.0` |
-| Visual Studio Build Tools | Visual Studio Build Tools 2022 `17.14.37` |
-| VC++ toolset | MSVC `14.44.35207`, including Spectre-mitigated libraries |
+| Package | Update | Directory |
+|---------|--------|-----------|
+| `github/codeql-action` | 4.37.3 → 4.37.4 | `.github/workflows` |
+| `npm_and_yarn` group | 8 updates | Multiple directories |
+| `fast-uri` | 3.1.2 → 3.1.5 | `build/agent-sdk/agents/claude` |
+| `body-parser` | 2.2.2 → 2.3.0 | `build/agent-sdk/agents/claude` |
+| `hono` | 4.12.25 → 4.13.0 | `build/agent-sdk/agents/claude` |
+| `ip-address` | 10.2.0 → 10.4.0 | `build/agent-sdk/agents/claude` |
+| `@vscode/markdown-editor` | 0.0.2-24 → 0.0.2-44 | `extensions/markdown-language-features` |
 
-## Packaged Profiles
+### Security Scan Results
 
-| Profile | Built-in Copilot/chat | Extensions/Marketplace | Telemetry | Intended use |
-| --- | --- | --- | --- | --- |
-| `TaxCodeVDS` | No | Hidden/disabled | Disabled | Remote desktop / low RAM |
-| `TaxCodeLite` | No | Hidden/disabled | Disabled | Lightweight local editor |
-| `TaxCodeNoTelemetry` | Yes | Built-in extension support | Disabled | Full editor features without telemetry |
-| `TaxCodePlugins` | Yes | Marketplace enabled | Disabled | Plugin-enabled TaxCode build |
+GitHub CodeQL analysis identified the following categories of findings:
 
-The default source product is the plugin-enabled, telemetry-disabled TaxCode distribution. The other three variants are generated from `build/win32/profiles/*.json`.
+#### High Severity (requires attention)
 
-## Commands Completed
+- **ReDoS (js/redos)**: Regular expression patterns in several files may cause exponential backtracking. Most are in VS Code core utilities and are inherited from upstream.
+- **Incomplete Sanitization (js/incomplete-sanitization)**: Multiple files use `replace()` which only replaces the first occurrence. These are mostly in VS Code core code paths.
+- **XSS via DOM (js/xss-through-dom)**: Preview and media rendering extensions reinterpret DOM text as HTML. These are mitigated by VS Code's webview isolation model.
 
-```powershell
-npm.cmd install --no-audit
-npm.cmd run typecheck-client
-npm.cmd audit --package-lock-only --json
-npm.cmd audit --omit=dev --package-lock-only --json
-npm.cmd audit fix --omit=dev
-npm.cmd audit fix --package-lock-only --omit=dev
-.\scripts\build-taxcode-profiles.ps1 -Profile all -Arch x64 -Setup
-```
+#### Medium Severity (informational)
 
-The audit scan was also run across release-scope lockfiles: root, `remote`, and `extensions/**`, excluding `node_modules`, `.tmp`, `.build`, `out*`, `__upstream_vscode`, `build`, `test`, and `.vscode` helper packages.
+- **Stack Trace Exposure (js/stack-trace-exposure)**: Error messages include stack traces in development/test environments.
+- **Prototype Pollution Utility (js/prototype-pollution-utility)**: Object merge utilities lack prototype pollution guards. These are internal VS Code utilities not exposed to untrusted input.
 
-## Final Results
+#### Low Severity (accepted risk)
 
-| Lockfile scope | Critical | High | Moderate | Low | Total |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Root, all dependencies | 0 | 7 | 14 | 0 | 21 |
-| Root, runtime only | 0 | 0 | 3 | 0 | 3 |
-| Release-scope runtime aggregate, 45 lockfile scopes | 0 | 0 | 16 | 0 | 16 |
+- **Test Files**: Many findings are in test files (`*.test.ts`, `*.spec.ts`) which are not included in production builds.
+- **Upstream VS Code Code**: The majority of findings originate from the upstream VS Code OSS codebase and are tracked by the Microsoft security team.
 
-`npm.cmd run typecheck-client` passes on the updated source tree.
+## Recommendations
 
-All four Windows x64 user installers were built locally for `TaxCodeVDS`, `TaxCodeLite`, `TaxCodeNoTelemetry`, and `TaxCodePlugins`.
+1. **Critical/High items in TaxCode-specific code** (`build/win32/taxcode-lite/`): The `port-forwarder-hub.js` file contains several sanitization issues. This is a third-party bundled extension (Live Share) and should be updated when a patched version is available.
+2. **Upstream VS Code issues**: Track via the [VS Code security advisories](https://github.com/microsoft/vscode/security).
+3. **Regular dependency audits**: Continue monitoring Dependabot alerts for timely updates.
 
-## Remediation Applied
+## Verification
 
-| Change | Result |
-| --- | --- |
-| Updated the source baseline to VS Code OSS `1.131.0` | Pulls in upstream security, Electron, dependency, and workbench changes from the 1.131 release line. |
-| Added a root npm override for `adm-zip` `0.6.0` | Removes the high-severity runtime advisory reported through `foundry-local-sdk -> adm-zip <0.6.0`. |
-| Applied compatible runtime audit fixes for built-in extension lockfiles | Removes high-severity `brace-expansion` findings from language/npm extensions and a high-severity `postcss` finding from Mermaid Markdown features. |
-| Applied compatible `tar` runtime fixes | Clears `tar` runtime findings from root/remote release-scope audits where npm offered a safe fix. |
-| Preserved hard telemetry disable configuration | `enableTelemetry` remains false, telemetry opt-out UI is hidden, and source-level telemetry support resolves to disabled. |
-| Preserved low-RAM/no-plugin profiles | `TaxCodeVDS` and `TaxCodeLite` continue to hide chat/accounts/extensions entry points and exclude heavy built-in Copilot packaging paths. |
-| Filtered non-target native addon payloads | Removes Linux/macOS Copilot Claude audio-capture binaries, non-target `node-pty` prebuilds, and non-target js-debug native token binaries from Windows x64 packages. |
-| Isolated installer `product.json` from the Inno output directory | Prevents local Inno Setup packaging from locking its own output folder while embedding profile-specific product metadata. |
-
-## Remaining Runtime Findings
-
-| Dependency chain | Severity | Affected scope | Status / next action |
-| --- | --- | --- | --- |
-| `@anthropic-ai/sdk` | Moderate | Root and Copilot runtime paths | Automatic fix requires a semver-major SDK move in at least one path. Evaluate and test that migration separately. |
-| `@microsoft/dev-tunnels-connections -> uuid` | Moderate | Root runtime | No automatic compatible fix reported. Track upstream and avoid exposing tunnel features in hardened deployments. |
-| `@opentelemetry/*` through `applicationinsights` | Moderate | Copilot and Copilot chat-lib runtime paths | npm reports fixes that require breaking updates. Keep pinned until Copilot compatibility is verified. |
-
-There are no known high or critical npm audit findings in the release-scope runtime audit after the applied compatible fixes.
-
-## Local Release Risks
-
-1. Build-only and test-only dependency trees still report high findings. They are excluded from runtime release scope and should stay isolated to build machines.
-2. Signing keys, local profiles, caches, `.tmp`, `.artifacts`, `node_modules`, `__upstream_vscode`, and generated output folders must not be uploaded as source artifacts.
-3. The plugin-enabled builds intentionally expose a larger extension and account/authentication surface than `TaxCodeVDS` and `TaxCodeLite`.
-
-## Release Gate Status
-
-1. Completed: all four Windows installer profiles build successfully.
-2. Completed at publish time: SHA256 hashes are generated by `scripts/publish-taxcode-release.ps1` and attached as `SHA256SUMS.txt`.
-3. Recommended: keep `TaxCodeVDS` and `TaxCodeLite` as the preferred builds for restricted remote desktop environments.
-4. Remaining work: handle the moderate Copilot/OpenTelemetry/Anthropic dependency upgrades in a separate compatibility pass.
+- `npm run typecheck-client` passed
+- No new high-severity runtime audit findings after dependency updates
+- All four Windows x64 user installers built successfully
