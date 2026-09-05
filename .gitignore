@@ -78,3 +78,8 @@ dist
 # Generated desktop application folders live beside this checkout.
 /TaxCode*-win32-x64/
 /VSCode-win32-x64/
+
+# Throwaway Code OSS dev profiles created by the launch skill
+.v[0-9]*/
+# Local agent validation evidence
+.agent-validation/
