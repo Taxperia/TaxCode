@@ -764,7 +764,10 @@ function prepareCopilotRipgrepShimTask(platform: string, arch: string, destinati
 		const appNodeModulesDir = path.join(appBase, 'node_modules.asar.unpacked');
 
 		const builtInCopilotExtensionDir = path.join(appBase, 'extensions', 'copilot');
-		prepareBuiltInCopilotRipgrepShim(platform, arch, builtInCopilotExtensionDir, appNodeModulesDir);
+		prepareBuiltInCopilotRipgrepShim(platform, arch, builtInCopilotExtensionDir, appNodeModulesDir, {
+			sourceCopilotPackageDir: path.join(root, 'extensions', 'copilot', 'node_modules', '@github', 'copilot'),
+			moduleIgnorePath: path.join(root, 'build', '.moduleignore')
+		});
 	};
 }
 

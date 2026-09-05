@@ -6,6 +6,7 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import picomatch from 'picomatch';
 import { ensureNpmPackage, materializeNpmPackageVersion, type EnsureNpmPackageOptions } from './npmPackage.ts';
 
 /**
@@ -16,6 +17,15 @@ import { ensureNpmPackage, materializeNpmPackageVersion, type EnsureNpmPackageOp
  */
 export interface PrepareBuiltInCopilotOptions extends EnsureNpmPackageOptions {
 	extensionLockfilePath?: string;
+	/**
+	 * Path to the source checkout's `extensions/copilot/node_modules/@github/copilot`
+	 * package. When provided, files missing from the packaged copy (the extension
+	 * dependency copy can truncate deep node_modules trees on local builds) are
+	 * restored from it before the SDK is materialized, honoring the moduleignore
+	 * rules passed via {@link moduleIgnorePath}.
+	 */
+	sourceCopilotPackageDir?: string;
+	moduleIgnorePath?: string;
 }
 
 /**
@@ -255,6 +265,52 @@ export function ensureCopilotPlatformPackage(platform: string, arch: string, nod
  * Failures throw to fail the build because built-in packaging must guarantee
  * this artifact is present.
  */
+/**
+ * Restores files that are missing from the packaged `@github/copilot` package by
+ * copying them from the source checkout, skipping paths matched by the
+ * moduleignore rules (those are stripped from the package on purpose).
+ */
+function restoreMissingCopilotPackageFiles(copilotBase: string, options: PrepareBuiltInCopilotOptions): void {
+	const { sourceCopilotPackageDir, moduleIgnorePath } = options;
+	if (!sourceCopilotPackageDir || !moduleIgnorePath || !fs.existsSync(sourceCopilotPackageDir)) {
+		return;
+	}
+
+	const rules = fs.readFileSync(moduleIgnorePath, 'utf8')
+		.split(/\r?\n/g)
+		.map(line => line.trim())
+		.filter(line => line && !line.startsWith('#'))
+		.map(line => line.startsWith('@github/copilot/') ? line.slice('@github/copilot/'.length) : line)
+		.filter(line => !line.includes('/node_modules/') && !line.startsWith('@github/copilot-'));
+	const excludeRules = rules.filter(line => !line.startsWith('!'));
+	const includeRules = rules.filter(line => line.startsWith('!')).map(line => line.slice(1));
+	const isExcluded = (rel: string): boolean => {
+		if (includeRules.some(rule => picomatch.isMatch(rel, rule, { dot: true }))) {
+			return false;
+		}
+		return excludeRules.some(rule => picomatch.isMatch(rel, rule, { dot: true }));
+	};
+
+	const walk = (src: string, dest: string, rel: string): void => {
+		for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+			const entryRel = rel ? `${rel}/${entry.name}` : entry.name;
+			if (isExcluded(entryRel)) {
+				continue;
+			}
+			const destPath = path.join(dest, entry.name);
+			if (entry.isDirectory()) {
+				fs.mkdirSync(destPath, { recursive: true });
+				walk(path.join(src, entry.name), destPath, entryRel);
+			} else if (!fs.existsSync(destPath)) {
+				fs.mkdirSync(path.dirname(destPath), { recursive: true });
+				fs.copyFileSync(path.join(src, entry.name), destPath);
+			}
+		}
+	};
+
+	walk(sourceCopilotPackageDir, copilotBase, '');
+}
+
 export function prepareBuiltInCopilotRipgrepShim(platform: string, arch: string, builtInCopilotExtensionDir: string, appNodeModulesDir: string, options: PrepareBuiltInCopilotOptions = {}): void {
 	const { nodePlatform, nodeArch } = toNodePlatformArch(platform, arch);
 	const platformArch = `${nodePlatform}-${nodeArch}`;
@@ -264,6 +320,7 @@ export function prepareBuiltInCopilotRipgrepShim(platform: string, arch: string,
 	const extensionNodeModules = path.join(builtInCopilotExtensionDir, 'node_modules');
 	const copilotBase = path.join(extensionNodeModules, '@github', 'copilot');
 	const copilotSdkBase = path.join(copilotBase, 'sdk');
+	restoreMissingCopilotPackageFiles(copilotBase, options);
 	if (!fs.existsSync(copilotSdkBase)) {
 		throw new Error(`[prepareBuiltInCopilotRipgrepShim] Copilot SDK directory not found at ${copilotSdkBase}`);
 	}
