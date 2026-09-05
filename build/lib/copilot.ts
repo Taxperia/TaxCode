@@ -280,8 +280,21 @@ function restoreMissingCopilotPackageFiles(copilotBase: string, options: Prepare
 		.split(/\r?\n/g)
 		.map(line => line.trim())
 		.filter(line => line && !line.startsWith('#'))
-		.map(line => line.startsWith('@github/copilot/') ? line.slice('@github/copilot/'.length) : line)
-		.filter(line => !line.includes('/node_modules/') && !line.startsWith('@github/copilot-'));
+		.flatMap(line => {
+			// Rules are relative to the extension's node_modules root; normalize the
+			// ones that target the built-in @github/copilot package (including its
+			// nested node_modules) so they apply inside the package tree.
+			if (line.startsWith('@github/copilot/node_modules/')) {
+				return [line.slice('@github/copilot/node_modules/'.length)];
+			}
+			if (line.startsWith('@github/copilot/')) {
+				return [line.slice('@github/copilot/'.length)];
+			}
+			if (line.startsWith('@github/copilot-') || line.includes('/node_modules/')) {
+				return [];
+			}
+			return [line];
+		});
 	const excludeRules = rules.filter(line => !line.startsWith('!'));
 	const includeRules = rules.filter(line => line.startsWith('!')).map(line => line.slice(1));
 	const isExcluded = (rel: string): boolean => {
