@@ -38,12 +38,6 @@
         "path": "./themes/dark_modern.json"
       },
       {
-        "id": "TaxCode Violet",
-        "label": "%taxCodeVioletThemeLabel%",
-        "uiTheme": "vs-dark",
-        "path": "./themes/taxcode_violet_dark.json"
-      },
-      {
         "id": "Light+",
         "label": "%lightPlusColorThemeLabel%",
         "uiTheme": "vs",

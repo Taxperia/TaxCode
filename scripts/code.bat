@@ -36,7 +36,6 @@ set VSCODE_DEV=1
 set VSCODE_CLI=1
 set ELECTRON_ENABLE_LOGGING=1
 set ELECTRON_ENABLE_STACK_DUMPING=1
-set ELECTRON_RUN_AS_NODE=
 
 set DISABLE_TEST_EXTENSION="--disable-extension=vscode.vscode-api-tests"
 for %%A in (%*) do (

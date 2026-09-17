@@ -252,7 +252,6 @@
 	],
 	"sessionsWindowAllowedExtensions": [],
 	"voiceWsUrl": "wss://falcon-caas.mai.microsoft.com/voice-code/api/v1/realtime/voice",
-	"builtinExtensionsFolderName": "builtin-extensions",
 	"showChatViewContainer": true,
 	"showAccountsActivity": true,
 	"showExtensionsViewContainer": true,

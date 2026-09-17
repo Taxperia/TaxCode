@@ -44,6 +44,7 @@ const glob = promisify(globCallback);
 const rcedit = promisify(rceditCallback);
 const root = path.dirname(import.meta.dirname);
 const commit = getVersion(root);
+const product = getEffectiveProduct();
 const packageLock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8')) as {
 	readonly packages?: Readonly<Record<string, { readonly version?: string }>>;
 };
@@ -56,8 +57,6 @@ function getLockedPackageVersion(packageName: string): string {
 
 	return version;
 }
-
-const product = getEffectiveProduct();
 
 // Build
 const vscodeEntryPoints = [
@@ -82,6 +81,7 @@ const vscodeResourceIncludes = [
 	// Workbench
 	'out-build/vs/code/electron-browser/workbench/workbench.html',
 	'out-build/vs/sessions/electron-browser/sessions.html',
+	'out-build/vs/workbench/browser/media/miniicon.png',
 
 	// Electron Preload
 	'out-build/vs/base/parts/sandbox/electron-browser/preload.js',
@@ -270,57 +270,6 @@ function getFoundryLocalExcludeFilter(): string[] {
 	];
 }
 
-const nodePtyPrebuildPlatforms = [
-	'darwin-arm64', 'darwin-x64',
-	'linux-arm64', 'linux-x64',
-	'win32-arm64', 'win32-x64',
-];
-
-const claudeAudioCapturePlatforms = [
-	'arm64-darwin', 'arm64-linux', 'arm64-win32',
-	'x64-darwin', 'x64-linux', 'x64-win32',
-];
-
-function getNodePackagePlatform(platform: string): string {
-	return platform === 'alpine' ? 'linux' : platform;
-}
-
-function getNodePackageArch(arch: string): string {
-	return arch === 'armhf' ? 'arm' : arch === 'alpine' ? 'x64' : arch;
-}
-
-function getNodePtyPrebuildPlatformArch(platform: string, arch: string): string {
-	return `${getNodePackagePlatform(platform)}-${getNodePackageArch(arch)}`;
-}
-
-function getNodePtyExcludeFilter(platform: string, arch: string): string[] {
-	const target = getNodePtyPrebuildPlatformArch(platform, arch);
-	const nonTargetPlatforms = nodePtyPrebuildPlatforms.filter(p => p !== target);
-
-	return [
-		'**',
-		...nonTargetPlatforms.map(p => `!**/node_modules/node-pty/prebuilds/${p}/**`),
-	];
-}
-
-function getNativeAddonPlatformExcludeFilter(platform: string, arch: string): string[] {
-	const nodePlatform = getNodePackagePlatform(platform);
-	const nodeArch = getNodePackageArch(arch);
-	const claudeAudioCaptureTarget = `${nodeArch}-${nodePlatform}`;
-	const nonTargetClaudeAudioCapturePlatforms = claudeAudioCapturePlatforms.filter(p => p !== claudeAudioCaptureTarget);
-
-	const jsDebugTokenArchs = ['arm64', 'x64'];
-	const nonTargetJsDebugTokenArchs = platform === 'win32'
-		? jsDebugTokenArchs.filter(a => a !== nodeArch)
-		: jsDebugTokenArchs;
-
-	return [
-		'**',
-		...nonTargetClaudeAudioCapturePlatforms.map(p => `!**/node_modules/@anthropic-ai/claude-agent-sdk/vendor/audio-capture/${p}/**`),
-		...nonTargetJsDebugTokenArchs.map(a => `!**/extensions/ms-vscode.js-debug/src/win32-app-container-tokens.win32-${a}-msvc-*.node`),
-	];
-}
-
 function packageTask(platform: string, arch: string, sourceFolderName: string, destinationFolderName: string, _opts?: { stats?: boolean }) {
 	const destination = path.join(path.dirname(root), destinationFolderName);
 	platform = platform || process.platform;
@@ -359,14 +308,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 			? ['!.build/extensions/copilot/**']
 			: [];
 
-		const extensions = gulp.src(['.build/extensions/**', ...platformSpecificBuiltInExtensionsExclusions, ...profileSpecificBuiltInExtensionsExclusions], { base: '.build', dot: true })
-			.pipe(filter(getCopilotExcludeFilter(platform, arch), { dot: true }))
-			.pipe(filter(getCopilotTgrepExcludeFilter(platform, arch), { dot: true }))
-			.pipe(filter(getRipgrepExcludeFilter(platform, arch), { dot: true }))
-			.pipe(filter(getMxcExcludeFilter(arch), { dot: true }))
-			.pipe(filter(getNodePtyExcludeFilter(platform, arch), { dot: true }))
-			.pipe(filter(getNativeAddonPlatformExcludeFilter(platform, arch), { dot: true }))
-			.pipe(filter(getFoundryLocalExcludeFilter(), { dot: true }));
+		const extensions = gulp.src(['.build/extensions/**', ...platformSpecificBuiltInExtensionsExclusions, ...profileSpecificBuiltInExtensionsExclusions], { base: '.build', dot: true });
 
 		const sourceFilterPattern = stripSourceMapsInPackagingTasks
 			? ['**', '!**/*.{js,css}.map']
@@ -459,8 +401,6 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 			.pipe(filter(getCopilotTgrepExcludeFilter(platform, arch)))
 			.pipe(filter(getRipgrepExcludeFilter(platform, arch)))
 			.pipe(filter(getMxcExcludeFilter(arch)))
-			.pipe(filter(getNodePtyExcludeFilter(platform, arch)))
-			.pipe(filter(getNativeAddonPlatformExcludeFilter(platform, arch)))
 			.pipe(filter(getFoundryLocalExcludeFilter()))
 			.pipe(filter(getOSProxyResolverExcludeFilter(platform, arch)))
 			.pipe(jsFilter)
@@ -674,9 +614,8 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 }
 
 function hasAuthenticodeSignature(filePath: string): Promise<boolean> {
-	return new Promise((resolve, reject) => {
+	return new Promise((resolve) => {
 		const proc = cp.spawn('signtool.exe', ['verify', '/pa', filePath]);
-				// signtool may be absent on local OSS builds; treat as unsigned
 		proc.on('error', () => resolve(false));
 		proc.on('exit', code => resolve(code === 0));
 	});

@@ -18,7 +18,7 @@ Please do not report security vulnerabilities through public GitHub issues.
 Use a private channel with the maintainers first. If GitHub private vulnerability reporting is enabled for this repository, use that. Otherwise, contact the project owner through the GitHub organization profile and include:
 
 - affected TaxCode version
-- affected edition (`TaxCodePlugins`, `TaxCodeNoTelemetry`, `TaxCodeLite`, or `TaxCodeVDS`)
+- affected edition (`TaxCodePlugins`, `TaxCodeLite`, or `TaxCodeVDS`)
 - operating system and architecture
 - clear reproduction steps
 - impact assessment

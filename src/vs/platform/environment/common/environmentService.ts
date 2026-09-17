@@ -319,16 +319,16 @@ export function parseExtensionHostDebugPort(args: NativeParsedArgs, isBuilt: boo
 
 export function parseDebugParams(debugArg: string | undefined, debugBrkArg: string | undefined, defaultBuildPort: number, isBuilt: boolean, debugId?: string, environmentString?: string): IExtensionHostDebugParams {
 	const portStr = debugBrkArg || debugArg;
-	const port = Number(portStr) || (!isBuilt && !env['VSCODE_DEV_DISABLE_DEBUG_PORTS'] ? defaultBuildPort : null);
+	const port = Number(portStr) || (!isBuilt ? defaultBuildPort : null);
 	const brk = port ? Boolean(!!debugBrkArg) : false;
-	let environment: Record<string, string> | undefined;
+	let env: Record<string, string> | undefined;
 	if (environmentString) {
 		try {
-			environment = JSON.parse(environmentString);
+			env = JSON.parse(environmentString);
 		} catch {
 			// ignore
 		}
 	}
 
-	return { port, break: brk, debugId, env: environment };
+	return { port, break: brk, debugId, env };
 }

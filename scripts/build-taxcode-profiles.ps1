@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
-	[ValidateSet("vds", "lite", "notelemetry", "plugins", "all")]
-	[string[]]$Profile = @("vds", "lite", "notelemetry", "plugins"),
+	[ValidateSet("plugins", "lite", "vds", "all")]
+	[string[]]$Profile = @("plugins", "lite", "vds"),
 
 	[ValidateSet("x64", "arm64")]
 	[string]$Arch = "x64",
@@ -14,7 +14,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$availableProfiles = @("vds", "lite", "notelemetry", "plugins")
+$availableProfiles = @("plugins", "lite", "vds")
 $selectedProfiles = if ($Profile -contains "all") { $availableProfiles } else { $Profile }
 
 function Get-FreeInstallerDrive {

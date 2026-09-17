@@ -666,14 +666,6 @@ export class AgentPluginsViewsContribution extends Disposable implements IWorkbe
 			return;
 		}
 
-		if (!VIEW_CONTAINER) {
-			return;
-		}
-
-		if (!VIEW_CONTAINER) {
-			return;
-		}
-
 		Registry.as<IViewsRegistry>(ViewExtensions.ViewsRegistry).registerViews([
 			{
 				id: InstalledAgentPluginsViewId,

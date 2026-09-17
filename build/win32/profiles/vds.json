@@ -8,6 +8,8 @@
 		"showChatViewContainer": false,
 		"showAccountsActivity": false,
 		"showExtensionsViewContainer": false,
+		"defaultFileIconTheme": "vs-minimal",
+		"extensionsGallery": null,
 		"win32MutexName": "taxcode-vds",
 		"serverApplicationName": "taxcode-vds-server",
 		"serverDataFolderName": ".taxcode-vds-server",

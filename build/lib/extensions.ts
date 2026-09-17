@@ -482,10 +482,26 @@ export function packageCopilotExtensionStream(disableMangle: boolean): Stream {
 
 	const productionDependencies = getProductionDependencies('extensions/copilot');
 	const dependenciesSrc = productionDependencies.map(d => path.relative(root, d)).map(d => [`${d}/**`, `!${d}/**/{test,tests}/**`]).flat();
+	const copilotTelemetryExclude = filter([
+		'**',
+		'!extensions/copilot/node_modules/@azure/**',
+		'!extensions/copilot/node_modules/@opentelemetry/**',
+		'!extensions/copilot/node_modules/@grpc/**',
+		'!extensions/copilot/node_modules/@protobuf-ts/**',
+		'!extensions/copilot/node_modules/applicationinsights/**',
+		'!extensions/copilot/node_modules/long/**',
+		'!extensions/copilot/node_modules/lsmod/**',
+		'!extensions/copilot/node_modules/continuation-local-storage/**',
+		'!extensions/copilot/node_modules/cls-hooked/**',
+		'!extensions/copilot/node_modules/async-hook-jr/**',
+		'!extensions/copilot/node_modules/shimmer/**',
+		'!extensions/copilot/node_modules/stack-chain/**'
+	], { restore: false });
 
 	return es.merge(
 		localExtensionsStream,
 		gulp.src(dependenciesSrc, { base: '.' })
+			.pipe(copilotTelemetryExclude)
 			.pipe(util2.cleanNodeModules(path.join(root, 'build', '.moduleignore')))
 			.pipe(util2.cleanNodeModules(path.join(root, 'build', `.moduleignore.${process.platform}`)))
 	).pipe(util2.setExecutableBit(['**/*.sh']));

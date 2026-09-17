@@ -2,9 +2,9 @@ param(
 	[Parameter(Mandatory = $true)]
 	[string]$Repository,
 
-	[string]$Tag = 'taxcode-v1.131.0',
-	[string]$Title = 'TaxCode 1.131.0',
-	[string]$NotesFile = 'GITHUB_RELEASE_1.131.0.md',
+	[string]$Tag = 'taxcode-v1.138.0',
+	[string]$Title = 'TaxCode 1.138.0',
+	[string]$NotesFile = 'GITHUB_RELEASE_1.138.0.md',
 	[switch]$SkipRepositoryMetadata
 )
 
@@ -34,7 +34,6 @@ $checksumsPath = Join-Path $artifactDir 'SHA256SUMS.txt'
 $assets = @(
 	'TaxCodeVDSUserSetup.exe',
 	'TaxCodeLiteUserSetup.exe',
-	'TaxCodeNoTelemetryUserSetup.exe',
 	'TaxCodePluginsUserSetup.exe'
 )
 

@@ -45,7 +45,7 @@ function packageInnoSetup(iss: string, options: { definitions?: Record<string, u
 	const defs = keys.map(key => `/d${key}=${definitions[key]}`);
 	const args = [
 		iss,
-		...defs,
+		...defs
 	];
 	if (process.env['SIGN'] === 'true') {
 		args.push(`/sesrp=node ${signWin32Path} $f`);

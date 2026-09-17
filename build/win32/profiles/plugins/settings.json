@@ -1,7 +1,7 @@
 {
 	"telemetry.telemetryLevel": "off",
 	"workbench.colorTheme": "Dark Modern",
-	"workbench.iconTheme": "antigravity-icons-supercharged-gray",
+	"workbench.iconTheme": "vs-seti",
 	"window.menuBarVisibility": "visible",
 	"liveshare.autoShareServers": false,
 	"liveshare.autoShareTerminals": false,

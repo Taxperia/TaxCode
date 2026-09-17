@@ -1,53 +1,62 @@
-# Security Audit - TaxCode 1.131.1
+# Security Audit - TaxCode 1.138.0
 
 ## Overview
 
-This document summarizes the security audit performed on TaxCode 1.131.1, based on VS Code OSS 1.131.0.
+This document tracks the security review for TaxCode 1.138.0, based on VS Code OSS 1.138.0.
 
-## Changes in 1.131.1
+## Scope
 
-### Dependency Updates (Dependabot)
+- TaxCode-specific telemetry shutdown paths
+- GitHub release update check behavior
+- Windows profile packaging for `TaxCodePlugins`, `TaxCodeLite`, and `TaxCodeVDS`
+- Added release scripts, profile files, and documentation
+- Dependency advisories reported by npm/GitHub before release
 
-The following dependency updates were merged to address known vulnerabilities:
+## Current Posture
 
-| Package | Update | Directory |
-|---------|--------|-----------|
-| `github/codeql-action` | 4.37.3 → 4.37.4 | `.github/workflows` |
-| `npm_and_yarn` group | 8 updates | Multiple directories |
-| `fast-uri` | 3.1.2 → 3.1.5 | `build/agent-sdk/agents/claude` |
-| `body-parser` | 2.2.2 → 2.3.0 | `build/agent-sdk/agents/claude` |
-| `hono` | 4.12.25 → 4.13.0 | `build/agent-sdk/agents/claude` |
-| `ip-address` | 10.2.0 → 10.4.0 | `build/agent-sdk/agents/claude` |
-| `@vscode/markdown-editor` | 0.0.2-24 → 0.0.2-44 | `extensions/markdown-language-features` |
+- Telemetry is disabled by product configuration and by the TaxCode telemetry service hardening.
+- Plugin-free profiles disable Marketplace gallery configuration and hide extension/chat entry points.
+- The update checker only reads public GitHub release metadata and opens the release page after user action.
+- Installer executables are release assets only and must not be committed to git.
 
-### Security Scan Results
+## Known Risk Areas
 
-GitHub CodeQL analysis identified the following categories of findings:
+1. Upstream VS Code OSS is a large application and may contain inherited advisories that should be tracked against Microsoft VS Code security updates.
+2. Seeded third-party extensions, if used for Lite/Plugins packaging, must be refreshed before release.
+3. Build-time dependency alerts should be reviewed separately from shipped runtime code.
+4. Release installers should be checked with SHA-256 hashes before publication.
 
-#### High Severity (requires attention)
+## Verification - 2026-09-18
 
-- **ReDoS (js/redos)**: Regular expression patterns in several files may cause exponential backtracking. Most are in VS Code core utilities and are inherited from upstream.
-- **Incomplete Sanitization (js/incomplete-sanitization)**: Multiple files use `replace()` which only replaces the first occurrence. These are mostly in VS Code core code paths.
-- **XSS via DOM (js/xss-through-dom)**: Preview and media rendering extensions reinterpret DOM text as HTML. These are mitigated by VS Code's webview isolation model.
+| Check | Result |
+| --- | --- |
+| `npm run gulp compile` | Passed |
+| `npm audit --omit=dev` | 5 total: 2 high, 3 moderate, 0 critical |
+| `npm audit` | 32 total: 13 high, 19 moderate, 0 critical |
+| Markdown extension dependency audit | 0 vulnerabilities after `npm ci --ignore-scripts` in `extensions/markdown-language-features` |
 
-#### Medium Severity (informational)
+## Runtime Advisories
 
-- **Stack Trace Exposure (js/stack-trace-exposure)**: Error messages include stack traces in development/test environments.
-- **Prototype Pollution Utility (js/prototype-pollution-utility)**: Object merge utilities lack prototype pollution guards. These are internal VS Code utilities not exposed to untrusted input.
+These advisories are present in production dependency audit output and must be reviewed before publishing installer assets:
 
-#### Low Severity (accepted risk)
+| Package | Severity | Notes |
+| --- | --- | --- |
+| `adm-zip` via `foundry-local-sdk` | High | npm suggests `foundry-local-sdk@2.0.1`, which is a major update and needs compatibility review. |
+| `foundry-local-sdk` | High | Direct dependency pinned to `1.2.3`; major upgrade should be tested with VS Code's Foundry integration. |
+| `@anthropic-ai/sdk` | Moderate | npm suggests `0.126.0`, a major update from the current `^0.82.0` range and needs API review. |
+| `@microsoft/dev-tunnels-connections` via `uuid` | Moderate | No npm fix currently available. Track upstream Microsoft package updates. |
+| `uuid` | Moderate | No npm fix currently available through the current dependency path. |
 
-- **Test Files**: Many findings are in test files (`*.test.ts`, `*.spec.ts`) which are not included in production builds.
-- **Upstream VS Code Code**: The majority of findings originate from the upstream VS Code OSS codebase and are tracked by the Microsoft security team.
+## Build/Dev Advisories
 
-## Recommendations
+Full audit includes additional build/test toolchain findings, mostly around `gulp`, `gulp-sourcemaps`, `svgo`, `browserslist`, `@xmldom/xmldom`, and related transitive packages. Several automatic fixes require major version changes, so they should be handled as a separate dependency-maintenance pull request instead of mixed into the VS Code baseline update.
 
-1. **Critical/High items in TaxCode-specific code** (`build/win32/taxcode-lite/`): The `port-forwarder-hub.js` file contains several sanitization issues. This is a third-party bundled extension (Live Share) and should be updated when a patched version is available.
-2. **Upstream VS Code issues**: Track via the [VS Code security advisories](https://github.com/microsoft/vscode/security).
-3. **Regular dependency audits**: Continue monitoring Dependabot alerts for timely updates.
+## Remaining Pre-Release Checks
 
-## Verification
+Run these before publishing a release:
 
-- `npm run typecheck-client` passed
-- No new high-severity runtime audit findings after dependency updates
-- All four Windows x64 user installers built successfully
+```powershell
+.\scripts\build-taxcode-profiles.ps1 -Profile all -Arch x64
+```
+
+Do not attach release installers until the runtime advisories above are fixed or explicitly accepted with a documented risk decision.

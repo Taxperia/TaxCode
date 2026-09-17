@@ -1,25 +1,7 @@
-## Summary
-
-Describe what changed and why.
-
-## Edition impact
-
-- [ ] TaxCodePlugins
-- [ ] TaxCodeNoTelemetry
-- [ ] TaxCodeLite
-- [ ] TaxCodeVDS
-- [ ] Source/build tooling only
-
-## Privacy and security
-
-- [ ] Telemetry remains disabled.
-- [ ] No signing keys, tokens, local profiles, installer files, or generated build folders are committed.
-- [ ] Dependency or packaging changes were reviewed for runtime impact.
-
-## Validation
-
-List the checks you ran:
-
-```text
-
-```
+<!-- Thank you for submitting a Pull Request. Please:
+* Read our Pull Request guidelines:
+  https://github.com/microsoft/vscode/wiki/How-to-Contribute#pull-requests
+* Associate an issue with the Pull Request.
+* Ensure that the code is up-to-date with the `main` branch.
+* Include a description of the proposed changes and how to test them.
+-->

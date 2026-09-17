@@ -54,7 +54,7 @@ const state: State = {
 const hasStartingLine = typeof settings.settings.line === 'number' && !isNaN(settings.settings.line);
 if (typeof originalState.scrollProgress !== 'undefined'
 	&& (originalState?.resource !== state.resource || (hasStartingLine && originalState.line !== settings.settings.line))) {
-	state.scrollProgress = undefined;
+	state.scrollProgress = hasStartingLine ? undefined : 0;
 }
 
 // Make sure to sync VS Code state here
@@ -836,7 +836,7 @@ function domEval(el: Element): void {
 		'type', 'src', 'nonce', 'noModule', 'async',
 	];
 
-	const scriptNodes = el.tagName === 'SCRIPT' ? [el] : Array.from(el.getElementsByTagName('script')); // CodeQL [js/xss] Content is sanitized by the markdown renderer before reaching this point
+	const scriptNodes = el.tagName === 'SCRIPT' ? [el] : Array.from(el.getElementsByTagName('script'));
 
 	for (const node of scriptNodes) {
 		if (!(node instanceof HTMLElement)) {

@@ -16,7 +16,7 @@ Good contributions include:
 - dependency security updates
 - documentation improvements
 - bug fixes inherited from upstream when they are needed before the next upstream merge
-- features that work cleanly across the four TaxCode editions
+- features that work cleanly across the three TaxCode editions
 
 Large upstream VS Code changes should normally be handled by updating the upstream baseline instead of rewriting them manually in this repository.
 
@@ -27,7 +27,6 @@ When changing product behavior, check the edition impact:
 | Edition | Expected behavior |
 | --- | --- |
 | `TaxCodePlugins` | Full plugin-enabled, telemetry-disabled source profile |
-| `TaxCodeNoTelemetry` | Chat/Copilot enabled, telemetry disabled |
 | `TaxCodeLite` | Lightweight, telemetry disabled, built-in chat/Copilot excluded |
 | `TaxCodeVDS` | Remote desktop / low RAM, telemetry disabled, minimal extension surface |
 

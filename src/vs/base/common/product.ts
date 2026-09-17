@@ -124,6 +124,11 @@ export interface IProductConfiguration {
 	readonly showAccountsActivity?: boolean;
 	readonly showExtensionsViewContainer?: boolean;
 	readonly defaultFileIconTheme?: string;
+	readonly taxcodeUpdate?: {
+		readonly enabled?: boolean;
+		readonly releaseApiUrl?: string;
+		readonly releaseUrl?: string;
+	};
 
 	readonly builtInExtensions?: IBuiltInExtension[];
 	readonly walkthroughMetadata?: IProductWalkthrough[];
@@ -131,11 +136,6 @@ export interface IProductConfiguration {
 
 	readonly downloadUrl?: string;
 	readonly updateUrl?: string;
-	readonly taxcodeUpdate?: {
-		readonly enabled?: boolean;
-		readonly releaseApiUrl?: string;
-		readonly releaseUrl?: string;
-	};
 	readonly webUrl?: string;
 	readonly webEndpointUrlTemplate?: string;
 	readonly webviewContentExternalBaseUrlTemplate?: string;
@@ -158,6 +158,7 @@ export interface IProductConfiguration {
 		readonly resourceUrlTemplate: string;
 		readonly nlsBaseUrl: string;
 		readonly accessSKUs?: string[];
+		readonly accessScopes?: string[];
 	};
 
 	readonly agentSdks?: { readonly [packageId: string]: IAgentSdkProductConfig };

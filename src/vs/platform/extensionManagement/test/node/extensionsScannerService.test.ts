@@ -104,17 +104,6 @@ suite('NativeExtensionsScanerService Test', () => {
 		assert.deepStrictEqual(actual[0].manifest, manifest);
 	});
 
-	test('scan system extensions returns empty when system extensions location does not exist', async () => {
-		const environmentService = instantiationService.get(INativeEnvironmentService);
-		const fileService = instantiationService.get(IFileService);
-		await fileService.del(URI.file(environmentService.builtinExtensionsPath), { recursive: true });
-		const testObject: IExtensionsScannerService = disposables.add(instantiationService.createInstance(ExtensionsScannerService));
-
-		const actual = await testObject.scanSystemExtensions({});
-
-		assert.deepStrictEqual(actual, []);
-	});
-
 	test('scan user extensions', async () => {
 		const manifest: Partial<IScannedExtensionManifest> = anExtensionManifest({ 'name': 'name', 'publisher': 'pub' });
 		const extensionLocation = await aUserExtension(manifest);

@@ -3,7 +3,7 @@
 	"update.mode": "none",
 	"workbench.startupEditor": "welcomePage",
 	"workbench.colorTheme": "Dark Modern",
-	"workbench.iconTheme": "antigravity-icons-supercharged-gray",
+	"workbench.iconTheme": "vs-minimal",
 	"window.menuBarVisibility": "visible",
 	"window.restoreWindows": "none",
 	"extensions.autoCheckUpdates": false,

@@ -9,6 +9,7 @@
 		"showAccountsActivity": false,
 		"showExtensionsViewContainer": false,
 		"defaultFileIconTheme": "vs-minimal",
+		"extensionsGallery": null,
 		"trustedExtensionAuthAccess": [],
 		"win32MutexName": "taxcode-lite",
 		"serverApplicationName": "taxcode-lite-server",
