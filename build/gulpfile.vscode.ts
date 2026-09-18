@@ -270,6 +270,25 @@ function getFoundryLocalExcludeFilter(): string[] {
 	];
 }
 
+function getNodePtyExcludeFilter(platform: string, arch: string): string[] {
+	const target = `${platform}-${arch}`;
+	const prebuildTargets = [
+		'darwin-arm64',
+		'darwin-x64',
+		'linux-arm64',
+		'linux-x64',
+		'win32-arm64',
+		'win32-x64',
+	];
+
+	return [
+		'**',
+		...prebuildTargets
+			.filter(prebuildTarget => prebuildTarget !== target)
+			.map(prebuildTarget => `!**/node-pty/prebuilds/${prebuildTarget}/**`),
+	];
+}
+
 function packageTask(platform: string, arch: string, sourceFolderName: string, destinationFolderName: string, _opts?: { stats?: boolean }) {
 	const destination = path.join(path.dirname(root), destinationFolderName);
 	platform = platform || process.platform;
@@ -402,6 +421,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 			.pipe(filter(getRipgrepExcludeFilter(platform, arch)))
 			.pipe(filter(getMxcExcludeFilter(arch)))
 			.pipe(filter(getFoundryLocalExcludeFilter()))
+			.pipe(filter(getNodePtyExcludeFilter(platform, arch)))
 			.pipe(filter(getOSProxyResolverExcludeFilter(platform, arch)))
 			.pipe(jsFilter)
 			.pipe(util.rewriteSourceMappingURL(sourceMappingURLBase))
@@ -645,6 +665,17 @@ async function stripAuthenticodeSignature(filePath: string): Promise<void> {
 	});
 }
 
+async function isWindowsPortableExecutable(filePath: string): Promise<boolean> {
+	const handle = await fs.promises.open(filePath, 'r');
+	try {
+		const header = Buffer.alloc(2);
+		const result = await handle.read(header, 0, header.length, 0);
+		return result.bytesRead === 2 && header[0] === 0x4d && header[1] === 0x5a;
+	} finally {
+		await handle.close();
+	}
+}
+
 function patchWin32DependenciesTask(destinationFolderName: string) {
 	const cwd = path.join(path.dirname(root), destinationFolderName);
 
@@ -665,6 +696,10 @@ function patchWin32DependenciesTask(destinationFolderName: string) {
 		const patchPromises = deps.map<Promise<unknown>>(async dep => {
 			const basename = path.basename(dep);
 			const fullPath = path.join(cwd, dep);
+
+			if (!await isWindowsPortableExecutable(fullPath)) {
+				return;
+			}
 
 			await stripAuthenticodeSignature(fullPath);
 			await rcedit(fullPath, {

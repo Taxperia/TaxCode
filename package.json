@@ -295,13 +295,6 @@
     "serialize-javascript": "^7.0.3",
     "yauzl": "^3.3.1"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/microsoft/vscode.git"
-  },
-  "bugs": {
-    "url": "https://github.com/microsoft/vscode/issues"
-  },
   "optionalDependencies": {
     "windows-foreground-love": "0.6.1"
   },

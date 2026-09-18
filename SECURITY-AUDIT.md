@@ -31,6 +31,7 @@ This document tracks the security review for TaxCode 1.138.0, based on VS Code O
 | Check | Result |
 | --- | --- |
 | `npm run gulp compile` | Passed |
+| `.\scripts\build-taxcode-profiles.ps1 -Profile all -Arch x64` | Passed; produced `TaxCodePlugins`, `TaxCodeLite`, and `TaxCodeVDS` win32-x64 app folders |
 | `npm audit --omit=dev` | 5 total: 2 high, 3 moderate, 0 critical |
 | `npm audit` | 32 total: 13 high, 19 moderate, 0 critical |
 | Markdown extension dependency audit | 0 vulnerabilities after `npm ci --ignore-scripts` in `extensions/markdown-language-features` |
@@ -56,7 +57,7 @@ Full audit includes additional build/test toolchain findings, mostly around `gul
 Run these before publishing a release:
 
 ```powershell
-.\scripts\build-taxcode-profiles.ps1 -Profile all -Arch x64
+.\scripts\build-taxcode-profiles.ps1 -Profile all -Arch x64 -Setup
 ```
 
-Do not attach release installers until the runtime advisories above are fixed or explicitly accepted with a documented risk decision.
+`-Setup` requires Inno Setup (`ISCC.exe`) on the build machine. Do not attach release installers until the runtime advisories above are fixed or explicitly accepted with a documented risk decision.
