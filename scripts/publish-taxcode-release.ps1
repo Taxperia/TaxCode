@@ -32,25 +32,41 @@ $safeTag = $Tag -replace '[^A-Za-z0-9._-]', '-'
 $artifactDir = Join-Path $root ".artifacts\release-$safeTag"
 $checksumsPath = Join-Path $artifactDir 'SHA256SUMS.txt'
 $assets = @(
-	'TaxCodeVDSUserSetup.exe',
-	'TaxCodeLiteUserSetup.exe',
-	'TaxCodePluginsUserSetup.exe'
+	@{
+		Name = 'TaxCodeVDSUserSetup.exe'
+		BuiltPath = '.build\win32-x64\user-setup\TaxCodeVDS\TaxCodeVDSUserSetup.exe'
+	},
+	@{
+		Name = 'TaxCodeLiteUserSetup.exe'
+		BuiltPath = '.build\win32-x64\user-setup\TaxCodeLite\TaxCodeLiteUserSetup.exe'
+	},
+	@{
+		Name = 'TaxCodePluginsUserSetup.exe'
+		BuiltPath = '.build\win32-x64\user-setup\TaxCodePlugins\TaxCodePluginsUserSetup.exe'
+	}
 )
 
 if (-not (Test-Path $notesPath)) {
 	throw "Release notes file not found: $notesPath"
 }
 
+New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
+
 $assetPaths = foreach ($asset in $assets) {
-	$path = Join-Path $root $asset
-	if (-not (Test-Path $path)) {
-		throw "Release asset not found: $path"
+	$rootPath = Join-Path $root $asset.Name
+	$builtPath = Join-Path $root $asset.BuiltPath
+	$sourcePath = if (Test-Path $rootPath) {
+		$rootPath
+	} elseif (Test-Path $builtPath) {
+		$builtPath
+	} else {
+		throw "Release asset not found: $($asset.Name). Expected $rootPath or $builtPath"
 	}
 
-	$path
+	$artifactPath = Join-Path $artifactDir $asset.Name
+	Copy-Item -LiteralPath $sourcePath -Destination $artifactPath -Force
+	$artifactPath
 }
-
-New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
 
 $checksumLines = foreach ($assetPath in $assetPaths) {
 	$file = Get-Item $assetPath

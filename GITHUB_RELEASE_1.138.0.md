@@ -17,3 +17,7 @@ TaxCode 1.138.0 updates the project to the VS Code OSS 1.138.0 baseline while ke
 ## Verification
 
 Verify installer downloads with the attached `SHA256SUMS.txt` file before redistribution.
+
+## Security Notes
+
+The release includes `SECURITY-AUDIT.md` with the current dependency audit result and tracked runtime advisories.

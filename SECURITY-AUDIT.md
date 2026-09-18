@@ -32,9 +32,18 @@ This document tracks the security review for TaxCode 1.138.0, based on VS Code O
 | --- | --- |
 | `npm run gulp compile` | Passed |
 | `.\scripts\build-taxcode-profiles.ps1 -Profile all -Arch x64` | Passed; produced `TaxCodePlugins`, `TaxCodeLite`, and `TaxCodeVDS` win32-x64 app folders |
+| `.\scripts\build-taxcode-profiles.ps1 -Profile all -Arch x64 -Setup` | Passed; produced all three Windows user installers |
 | `npm audit --omit=dev` | 5 total: 2 high, 3 moderate, 0 critical |
 | `npm audit` | 32 total: 13 high, 19 moderate, 0 critical |
 | Markdown extension dependency audit | 0 vulnerabilities after `npm ci --ignore-scripts` in `extensions/markdown-language-features` |
+
+## Release Installer Hashes
+
+| Asset | Size | SHA-256 |
+| --- | ---: | --- |
+| `TaxCodeLiteUserSetup.exe` | 228.7 MB | `5317C7B89961CD28EC17F450958BF91AA363335B9F5E2E85014FD0F93D327C35` |
+| `TaxCodePluginsUserSetup.exe` | 312.3 MB | `8186E66FBF019B95DED369FB90CC13A3ECFDB9222314E4EC67945591376C6C6A` |
+| `TaxCodeVDSUserSetup.exe` | 228.6 MB | `F8B8FC1CEDB01D4B550A9BC4EDA2036FC48B7D04FB7DA2403EC4E4B4C34E0868` |
 
 ## Runtime Advisories
 
@@ -52,12 +61,8 @@ These advisories are present in production dependency audit output and must be r
 
 Full audit includes additional build/test toolchain findings, mostly around `gulp`, `gulp-sourcemaps`, `svgo`, `browserslist`, `@xmldom/xmldom`, and related transitive packages. Several automatic fixes require major version changes, so they should be handled as a separate dependency-maintenance pull request instead of mixed into the VS Code baseline update.
 
-## Remaining Pre-Release Checks
+## Release Gate
 
-Run these before publishing a release:
+The installers were built with the npm-provided Inno Setup compiler from `node_modules\innosetup\bin\ISCC.exe`.
 
-```powershell
-.\scripts\build-taxcode-profiles.ps1 -Profile all -Arch x64 -Setup
-```
-
-`-Setup` requires Inno Setup (`ISCC.exe`) on the build machine. Do not attach release installers until the runtime advisories above are fixed or explicitly accepted with a documented risk decision.
+Do not treat the dependency advisories above as closed until the runtime dependency upgrades are either tested and merged or explicitly accepted with a documented risk decision.
