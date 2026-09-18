@@ -103,10 +103,13 @@ if (-not $SkipRepositoryMetadata) {
 	}
 }
 
-$releaseExists = $false
-& $gh release view $Tag --repo $Repository *> $null
-if ($LASTEXITCODE -eq 0) {
-	$releaseExists = $true
+$previousErrorActionPreference = $ErrorActionPreference
+$ErrorActionPreference = 'SilentlyContinue'
+try {
+	& $gh release view $Tag --repo $Repository *> $null
+	$releaseExists = $LASTEXITCODE -eq 0
+} finally {
+	$ErrorActionPreference = $previousErrorActionPreference
 }
 
 if (-not $releaseExists) {
