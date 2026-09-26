@@ -60,7 +60,7 @@ function updateExtensionPackageJSON(input: Stream, update: (data: any) => any): 
 		.pipe(packageJsonFilter.restore);
 }
 
-function fromLocal(extensionPath: string, forWeb: boolean, _disableMangle: boolean): Stream {
+function fromLocal(extensionPath: string, forWeb: boolean): Stream {
 
 	let esbuildConfigFileName = forWeb
 		? 'esbuild.browser.mts'
@@ -118,18 +118,35 @@ export function typeCheckExtension(extensionPath: string, forWeb: boolean): Prom
 	return spawnTsgo(tsconfigPath, { taskName: 'typechecking extension (tsgo)', noEmit: true });
 }
 
+let localExtensionTypeCheckQueue: Promise<void> = Promise.resolve();
+
 export function typeCheckExtensionStream(extensionPath: string, forWeb: boolean): Stream {
 	const tsconfigFileName = forWeb ? 'tsconfig.browser.json' : 'tsconfig.json';
 	const tsconfigPath = path.join(extensionPath, tsconfigFileName);
-	return createTsgoStream(tsconfigPath, { taskName: 'typechecking extension (tsgo)', noEmit: true });
+	const result = es.through();
+	const typeCheckPromise = localExtensionTypeCheckQueue.then(() =>
+		spawnTsgo(tsconfigPath, { taskName: 'typechecking extension (tsgo)', noEmit: true })
+	);
+	localExtensionTypeCheckQueue = typeCheckPromise.then(() => undefined, () => undefined);
+
+	typeCheckPromise
+		.then(() => result.emit('end'))
+		.catch(err => result.emit('error', err));
+
+	return result;
 }
 
+
+let localExtensionFileListingQueue: Promise<void> = Promise.resolve();
 
 function fromLocalNormal(extensionPath: string): Stream {
 	const vsce = require('@vscode/vsce') as typeof import('@vscode/vsce');
 	const result = es.through();
 
-	vsce.listFiles({ cwd: extensionPath, packageManager: vsce.PackageManager.Npm })
+	const fileNamesPromise = localExtensionFileListingQueue.then(() => vsce.listFiles({ cwd: extensionPath, packageManager: vsce.PackageManager.Npm }));
+	localExtensionFileListingQueue = fileNamesPromise.then(() => undefined, () => undefined);
+
+	fileNamesPromise
 		.then(fileNames => {
 			const files = fileNames
 				.map(fileName => path.join(extensionPath, fileName))
@@ -376,11 +393,10 @@ export function isWebExtension(manifest: IExtensionManifest): boolean {
 /**
  * Package local extensions that are known to not have native dependencies. Mutually exclusive to {@link packageNativeLocalExtensionsStream}.
  * @param forWeb build the extensions that have web targets
- * @param disableMangle disable the mangler
  * @returns a stream
  */
-export function packageNonNativeLocalExtensionsStream(forWeb: boolean, disableMangle: boolean): Stream {
-	return doPackageLocalExtensionsStream(forWeb, disableMangle, false);
+export function packageNonNativeLocalExtensionsStream(forWeb: boolean): Stream {
+	return doPackageLocalExtensionsStream(forWeb, false);
 }
 
 /**
@@ -389,32 +405,29 @@ export function packageNonNativeLocalExtensionsStream(forWeb: boolean, disableMa
  * but we simplify the logic here by having a flat list of extensions (See {@link nativeExtensions}) that are known to have native
  * dependencies on some platform and thus should be packaged on the platform that they are building for.
  * @param forWeb build the extensions that have web targets
- * @param disableMangle disable the mangler
  * @returns a stream
  */
-export function packageNativeLocalExtensionsStream(forWeb: boolean, disableMangle: boolean): Stream {
-	return doPackageLocalExtensionsStream(forWeb, disableMangle, true);
+export function packageNativeLocalExtensionsStream(forWeb: boolean): Stream {
+	return doPackageLocalExtensionsStream(forWeb, true);
 }
 
 /**
  * Package all the local extensions... both those that are known to have native dependencies and those that are not.
  * @param forWeb build the extensions that have web targets
- * @param disableMangle disable the mangler
  * @returns a stream
  */
-export function packageAllLocalExtensionsStream(forWeb: boolean, disableMangle: boolean): Stream {
+export function packageAllLocalExtensionsStream(forWeb: boolean): Stream {
 	return es.merge([
-		packageNonNativeLocalExtensionsStream(forWeb, disableMangle),
-		packageNativeLocalExtensionsStream(forWeb, disableMangle)
+		packageNonNativeLocalExtensionsStream(forWeb),
+		packageNativeLocalExtensionsStream(forWeb)
 	]);
 }
 
 /**
  * @param forWeb build the extensions that have web targets
- * @param disableMangle disable the mangler
  * @param native build the extensions that are marked as having native dependencies
  */
-function doPackageLocalExtensionsStream(forWeb: boolean, disableMangle: boolean, native: boolean): Stream {
+function doPackageLocalExtensionsStream(forWeb: boolean, native: boolean): Stream {
 	const nativeExtensionsSet = new Set(nativeExtensions);
 	const localExtensionsDescriptions = (
 		(glob.sync('extensions/*/package.json') as string[])
@@ -433,7 +446,7 @@ function doPackageLocalExtensionsStream(forWeb: boolean, disableMangle: boolean,
 	const localExtensionsStream = minifyExtensionResources(
 		es.merge(
 			...localExtensionsDescriptions.map(extension => {
-				return fromLocal(extension.path, forWeb, disableMangle)
+				return fromLocal(extension.path, forWeb)
 					.pipe(rename(p => p.dirname = `extensions/${extension.name}/${p.dirname}`));
 			})
 		)
@@ -469,39 +482,23 @@ function doPackageLocalExtensionsStream(forWeb: boolean, disableMangle: boolean,
  * This is used by non-CI local builds where copilot is not downloaded as a VSIX
  * but must be compiled from source and included in the build.
  */
-export function packageCopilotExtensionStream(disableMangle: boolean): Stream {
+export function packageCopilotExtensionStream(): Stream {
 	const extensionPath = path.join(root, 'extensions', 'copilot');
 	if (!fs.existsSync(extensionPath)) {
 		return es.readArray([]);
 	}
 
 	const localExtensionsStream = minifyExtensionResources(
-		fromLocal(extensionPath, false, disableMangle)
+		fromLocal(extensionPath, false)
 			.pipe(rename(p => p.dirname = `extensions/copilot/${p.dirname}`))
 	);
 
 	const productionDependencies = getProductionDependencies('extensions/copilot');
 	const dependenciesSrc = productionDependencies.map(d => path.relative(root, d)).map(d => [`${d}/**`, `!${d}/**/{test,tests}/**`]).flat();
-	const copilotTelemetryExclude = filter([
-		'**',
-		'!extensions/copilot/node_modules/@azure/**',
-		'!extensions/copilot/node_modules/@opentelemetry/**',
-		'!extensions/copilot/node_modules/@grpc/**',
-		'!extensions/copilot/node_modules/@protobuf-ts/**',
-		'!extensions/copilot/node_modules/applicationinsights/**',
-		'!extensions/copilot/node_modules/long/**',
-		'!extensions/copilot/node_modules/lsmod/**',
-		'!extensions/copilot/node_modules/continuation-local-storage/**',
-		'!extensions/copilot/node_modules/cls-hooked/**',
-		'!extensions/copilot/node_modules/async-hook-jr/**',
-		'!extensions/copilot/node_modules/shimmer/**',
-		'!extensions/copilot/node_modules/stack-chain/**'
-	], { restore: false });
 
 	return es.merge(
 		localExtensionsStream,
 		gulp.src(dependenciesSrc, { base: '.' })
-			.pipe(copilotTelemetryExclude)
 			.pipe(util2.cleanNodeModules(path.join(root, 'build', '.moduleignore')))
 			.pipe(util2.cleanNodeModules(path.join(root, 'build', `.moduleignore.${process.platform}`)))
 	).pipe(util2.setExecutableBit(['**/*.sh']));

@@ -5,7 +5,6 @@
 
 import * as nls from '../../../../nls.js';
 import * as types from '../../../../base/common/types.js';
-import product from '../../../../platform/product/common/product.js';
 import { IExtensionService } from '../../extensions/common/extensions.js';
 import { IWorkbenchThemeService, IWorkbenchColorTheme, IWorkbenchFileIconTheme, ExtensionData, ThemeSettings, IWorkbenchProductIconTheme, ThemeSettingTarget, ThemeSettingDefaults, COLOR_THEME_DARK_INITIAL_COLORS, COLOR_THEME_LIGHT_INITIAL_COLORS, migrateThemeSettingsId } from '../common/workbenchThemeService.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
@@ -229,7 +228,7 @@ export class WorkbenchThemeService extends Disposable implements IWorkbenchTheme
 				await this.userDataInitializationService.whenInitializationFinished();
 				theme = this.fileIconThemeRegistry.findThemeBySettingsId(this.settings.fileIconTheme);
 			}
-			return this.setFileIconTheme(theme ? theme.id : this.getDefaultFileIconThemeId(), undefined);
+			return this.setFileIconTheme(theme ? theme.id : DEFAULT_FILE_ICON_THEME_ID, undefined);
 		};
 
 		const initializeProductIconTheme = async () => {
@@ -248,18 +247,9 @@ export class WorkbenchThemeService extends Disposable implements IWorkbenchTheme
 
 
 		this.migrateColorThemeSettings();
-		await this.migrateFileIconThemeSetting();
 		const result = await Promise.all([initializeColorTheme(), initializeFileIconTheme(), initializeProductIconTheme()]);
 		await this.showNewDefaultThemeNotification(themePreviousSettingsId);
 		return result;
-	}
-
-	private getDefaultFileIconThemeSettingsId(): string {
-		return product.defaultFileIconTheme ?? ThemeSettingDefaults.FILE_ICON_THEME;
-	}
-
-	private getDefaultFileIconThemeId(): string {
-		return this.fileIconThemeRegistry.findThemeBySettingsId(this.getDefaultFileIconThemeSettingsId())?.id ?? DEFAULT_FILE_ICON_THEME_ID;
 	}
 
 	private static readonly NEW_THEME_NOTIFICATION_KEY = 'workbench.newDefaultThemeNotification';
@@ -346,24 +336,6 @@ export class WorkbenchThemeService extends Disposable implements IWorkbenchTheme
 		}
 	}
 
-	private async migrateFileIconThemeSetting(): Promise<void> {
-		const defaultFileIconTheme = product.defaultFileIconTheme;
-		if (!defaultFileIconTheme || defaultFileIconTheme === ThemeSettingDefaults.FILE_ICON_THEME) {
-			return;
-		}
-
-		const inspection = this.configurationService.inspect<string | null>(ThemeSettings.FILE_ICON_THEME);
-		for (const [target, value] of [
-			[ConfigurationTarget.USER, inspection.userValue],
-			[ConfigurationTarget.USER_LOCAL, inspection.userLocalValue],
-			[ConfigurationTarget.USER_REMOTE, inspection.userRemoteValue],
-		] as const) {
-			if (value === ThemeSettingDefaults.FILE_ICON_THEME) {
-				await this.configurationService.updateValue(ThemeSettings.FILE_ICON_THEME, defaultFileIconTheme, target);
-			}
-		}
-	}
-
 	private installConfigurationListener() {
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(ThemeSettings.COLOR_THEME)
@@ -433,7 +405,7 @@ export class WorkbenchThemeService extends Disposable implements IWorkbenchTheme
 			updateFileIconThemeConfigurationSchemas(event.themes);
 			if (await this.restoreFileIconTheme()) { // checks if theme from settings exists and is set
 				// restore theme
-				if (this.currentFileIconTheme.id === this.getDefaultFileIconThemeId() && !types.isUndefined(prevFileIconId) && this.fileIconThemeRegistry.findThemeById(prevFileIconId)) {
+				if (this.currentFileIconTheme.id === DEFAULT_FILE_ICON_THEME_ID && !types.isUndefined(prevFileIconId) && this.fileIconThemeRegistry.findThemeById(prevFileIconId)) {
 					await this.setFileIconTheme(prevFileIconId, 'auto');
 					prevFileIconId = undefined;
 				} else if (event.added.some(t => t.settingsId === this.currentFileIconTheme.settingsId)) {
@@ -442,7 +414,7 @@ export class WorkbenchThemeService extends Disposable implements IWorkbenchTheme
 			} else if (event.removed.some(t => t.settingsId === this.currentFileIconTheme.settingsId)) {
 				// current theme is no longer available
 				prevFileIconId = this.currentFileIconTheme.id;
-				await this.setFileIconTheme(this.getDefaultFileIconThemeId(), 'auto');
+				await this.setFileIconTheme(DEFAULT_FILE_ICON_THEME_ID, 'auto');
 			}
 
 		})));

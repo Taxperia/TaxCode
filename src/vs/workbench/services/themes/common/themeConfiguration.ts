@@ -5,7 +5,6 @@
 
 import * as nls from '../../../../nls.js';
 import * as types from '../../../../base/common/types.js';
-import product from '../../../../platform/product/common/product.js';
 import { Registry } from '../../../../platform/registry/common/platform.js';
 import { IConfigurationRegistry, Extensions as ConfigurationExtensions, IConfigurationPropertySchema, IConfigurationNode, ConfigurationScope } from '../../../../platform/configuration/common/configurationRegistry.js';
 
@@ -103,7 +102,7 @@ const colorCustomizationsSchema: IConfigurationPropertySchema = {
 };
 const fileIconThemeSettingSchema: IConfigurationPropertySchema = {
 	type: ['string', 'null'],
-	default: product.defaultFileIconTheme ?? ThemeSettingDefaults.FILE_ICON_THEME,
+	default: ThemeSettingDefaults.FILE_ICON_THEME,
 	description: nls.localize('iconTheme', "Specifies the file icon theme used in the workbench or 'null' to not show any file icons."),
 	enum: [null],
 	enumItemLabels: [nls.localize('noIconThemeLabel', 'None')],

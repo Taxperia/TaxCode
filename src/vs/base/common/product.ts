@@ -101,6 +101,11 @@ export interface IProductConfiguration {
 	readonly date?: string;
 	readonly quality?: string;
 	readonly commit?: string;
+	readonly taxCodeProfile?: 'plugins' | 'no-extensions' | 'low-memory';
+	readonly taxCodeExtensionsEnabled?: boolean;
+	readonly taxCodeLowMemoryMode?: boolean;
+	readonly taxCodeDefaultMaxOldSpaceSize?: number;
+	readonly taxCodeDisableHardwareAcceleration?: boolean;
 
 	readonly nameShort: string;
 	readonly nameLong: string;
@@ -113,22 +118,13 @@ export interface IProductConfiguration {
 	readonly win32VersionedUpdate?: boolean;
 	readonly win32ContextMenu?: { readonly [arch: string]: { readonly clsid: string } };
 	readonly applicationName: string;
+	readonly linuxDesktopName?: string;
 	readonly embedderIdentifier?: string;
 	readonly agentsTelemetryAppName?: string;
 
 	readonly urlProtocol: string;
 	readonly dataFolderName: string; // location for extensions (e.g. ~/.vscode-insiders)
 	readonly sharedDataFolderName: string; // location for shared data (e.g. ~/.vscode-insiders-shared)
-	readonly builtinExtensionsFolderName?: string;
-	readonly showChatViewContainer?: boolean;
-	readonly showAccountsActivity?: boolean;
-	readonly showExtensionsViewContainer?: boolean;
-	readonly defaultFileIconTheme?: string;
-	readonly taxcodeUpdate?: {
-		readonly enabled?: boolean;
-		readonly releaseApiUrl?: string;
-		readonly releaseUrl?: string;
-	};
 
 	readonly builtInExtensions?: IBuiltInExtension[];
 	readonly walkthroughMetadata?: IProductWalkthrough[];
@@ -141,6 +137,8 @@ export interface IProductConfiguration {
 	readonly webviewContentExternalBaseUrlTemplate?: string;
 	readonly target?: string;
 	readonly nlsCoreBaseUrl?: string;
+	/** Build-time hash of the commit and core NLS tables used to identify translated-message caches. */
+	readonly nlsMetadataHash?: string;
 
 	readonly settingsSearchBuildId?: number;
 	readonly settingsSearchUrl?: string;

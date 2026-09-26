@@ -94,6 +94,7 @@ export class NativeExtensionService extends AbstractExtensionService implements 
 			extensionsProposedApi,
 			extensionScanner,
 			() => this._getExtensionRegistrySnapshotWhenReady(),
+			productService.taxCodeExtensionsEnabled !== false,
 			instantiationService,
 			environmentService,
 			extensionEnablementService,
@@ -103,7 +104,7 @@ export class NativeExtensionService extends AbstractExtensionService implements 
 			logService
 		);
 		super(
-			{ hasLocalProcess: true, allowRemoteExtensionsInLocalWebWorker: false },
+			{ hasLocalProcess: productService.taxCodeExtensionsEnabled !== false, allowRemoteExtensionsInLocalWebWorker: false },
 			extensionsProposedApi,
 			extensionHostFactory,
 			new NativeExtensionHostKindPicker(environmentService, configurationService, logService),
@@ -551,6 +552,7 @@ class NativeExtensionHostFactory implements IExtensionHostFactory {
 		private readonly _extensionsProposedApi: ExtensionsProposedApi,
 		private readonly _extensionScanner: CachedExtensionScanner,
 		private readonly _getExtensionRegistrySnapshotWhenReady: () => Promise<ExtensionDescriptionRegistrySnapshot>,
+		private readonly _extensionsEnabled: boolean,
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
 		@IWorkbenchEnvironmentService environmentService: IWorkbenchEnvironmentService,
 		@IWorkbenchExtensionEnablementService private readonly _extensionEnablementService: IWorkbenchExtensionEnablementService,
@@ -563,6 +565,10 @@ class NativeExtensionHostFactory implements IExtensionHostFactory {
 	}
 
 	public createExtensionHost(runningLocations: ExtensionRunningLocationTracker, runningLocation: ExtensionRunningLocation, isInitialStart: boolean): IExtensionHost | null {
+		if (!this._extensionsEnabled) {
+			return null;
+		}
+
 		switch (runningLocation.kind) {
 			case ExtensionHostKind.LocalProcess: {
 				const startup = (

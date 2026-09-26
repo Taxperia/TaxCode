@@ -6,8 +6,8 @@
 	"sharedDataFolderName": ".taxcode-shared",
 	"win32MutexName": "taxcode",
 	"licenseName": "MIT",
-	"licenseUrl": "https://github.com/Taxperia/TaxCode/blob/main/LICENSE.txt",
-	"serverLicenseUrl": "https://github.com/Taxperia/TaxCode/blob/main/LICENSE.txt",
+	"licenseUrl": "https://github.com/microsoft/vscode/blob/main/LICENSE.txt",
+	"serverLicenseUrl": "https://github.com/microsoft/vscode/blob/main/LICENSE.txt",
 	"serverGreeting": [],
 	"serverLicense": [],
 	"serverLicensePrompt": "",
@@ -17,32 +17,40 @@
 	"win32DirName": "TaxCode",
 	"win32NameVersion": "TaxCode",
 	"win32RegValueName": "TaxCode",
-	"win32x64AppId": "{{7A5EE3A9-7E16-443A-8887-0D0389F7A353}",
-	"win32arm64AppId": "{{E0E9AACA-A1ED-4D3E-A8E2-9F2F5EEC61AF}",
-	"win32x64UserAppId": "{{99B67BD0-2E69-47EF-8FA7-485C62E18578}",
-	"win32arm64UserAppId": "{{34DA02E1-33E2-4668-B5C3-08DA114907C9}",
-	"win32AppUserModelId": "TaxCode.App",
-	"win32ShellNameShort": "T&axCode",
+	"win32x64AppId": "{{B8A90CF6-4C0A-4AD8-A61B-996E8735D4B1}",
+	"win32arm64AppId": "{{194C44B3-6A28-4B87-AB1E-04DC5D70C819}",
+	"win32x64UserAppId": "{{D70CF8CB-8E75-4A65-BE21-3207B451EB69}",
+	"win32arm64UserAppId": "{{75F724A6-F32D-4708-8243-D9839EA0B340}",
+	"win32AppUserModelId": "TaxCode.Editor",
+	"win32ShellNameShort": "TaxCode",
 	"win32TunnelServiceMutex": "taxcode-tunnelservice",
 	"win32TunnelMutex": "taxcode-tunnel",
-	"darwinBundleIdentifier": "com.visualstudio.code.oss",
+	"darwinBundleIdentifier": "dev.taxcode.editor",
 	"darwinProfileUUID": "47827DD9-4734-49A0-AF80-7E19B11495CC",
 	"darwinProfilePayloadUUID": "CF808BE7-53F3-46C6-A7E2-7EDB98A5E959",
+	"linuxDesktopName": "dev.taxcode.TaxCode",
 	"linuxIconName": "taxcode",
 	"licenseFileName": "LICENSE.txt",
-	"reportIssueUrl": "https://github.com/Taxperia/TaxCode/issues/new",
-	"downloadUrl": "https://github.com/Taxperia/TaxCode/releases/latest",
-	"releaseNotesUrl": "https://github.com/Taxperia/TaxCode/releases/latest",
-	"taxcodeUpdate": {
-		"enabled": true,
-		"releaseApiUrl": "https://api.github.com/repos/Taxperia/TaxCode/releases/latest",
-		"releaseUrl": "https://github.com/Taxperia/TaxCode/releases/latest"
-	},
+	"reportIssueUrl": "https://github.com/microsoft/vscode/issues/new",
 	"nodejsArtifactFeed": "",
 	"electronArtifactFeed": "",
 	"urlProtocol": "taxcode",
-	"agentsTelemetryAppName": "agents",
 	"webviewContentExternalBaseUrlTemplate": "https://{{uuid}}.vscode-cdn.net/insider/ef65ac1ba57f57f2a3961bfe94aa20481caca4c6/out/vs/workbench/contrib/webview/browser/pre/",
+	"extensionsGallery": {
+		"serviceUrl": "https://open-vsx.org/vscode/gallery",
+		"itemUrl": "https://open-vsx.org/vscode/item",
+		"resourceUrlTemplate": "https://open-vsx.org/vscode/unpkg/{publisher}/{name}/{version}/{path}",
+		"extensionUrlTemplate": "https://open-vsx.org/vscode/gallery/{publisher}/{name}/latest"
+	},
+	"linkProtectionTrustedDomains": [
+		"https://open-vsx.org"
+	],
+	"enableTelemetry": false,
+	"removeTelemetryMachineId": true,
+	"showTelemetryOptOut": false,
+	"taxCodeProfile": "plugins",
+	"taxCodeExtensionsEnabled": true,
+	"taxCodeLowMemoryMode": false,
 	"builtInExtensions": [
 		{
 			"name": "ms-vscode.js-debug-companion",
@@ -251,25 +259,5 @@
 		"GitHub.copilot-chat"
 	],
 	"sessionsWindowAllowedExtensions": [],
-	"voiceWsUrl": "wss://falcon-caas.mai.microsoft.com/voice-code/api/v1/realtime/voice",
-	"showChatViewContainer": true,
-	"showAccountsActivity": true,
-	"showExtensionsViewContainer": true,
-	"enableTelemetry": false,
-	"enabledTelemetryLevels": {
-		"error": false,
-		"usage": false
-	},
-	"showTelemetryOptOut": false,
-	"extensionsGallery": {
-		"nlsBaseUrl": "https://www.vscode-unpkg.net/_lp/",
-		"serviceUrl": "https://marketplace.visualstudio.com/_apis/public/gallery",
-		"searchUrl": "https://marketplace.visualstudio.com/_apis/public/gallery/searchrelevancy/extensionquery",
-		"servicePPEUrl": "https://marketplace.vsallin.net/_apis/public/gallery",
-		"cacheUrl": "https://vscode.blob.core.windows.net/gallery/index",
-		"itemUrl": "https://marketplace.visualstudio.com/items",
-		"publisherUrl": "https://marketplace.visualstudio.com/publishers",
-		"resourceUrlTemplate": "https://{publisher}.vscode-unpkg.net/{publisher}/{name}/{version}/{path}",
-		"controlUrl": "https://az764295.vo.msecnd.net/extensions/marketplace.json"
-	}
+	"voiceWsUrl": "wss://falcon-caas.mai.microsoft.com/voice-code/api/v1/realtime/voice"
 }

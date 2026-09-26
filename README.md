@@ -1,112 +1,76 @@
-# TaxCode
+# Visual Studio Code - Open Source ("Code - OSS")
+[![Feature Requests](https://img.shields.io/github/issues/microsoft/vscode/feature-request.svg)](https://github.com/microsoft/vscode/issues?q=is%3Aopen+is%3Aissue+label%3Afeature-request+sort%3Areactions-%2B1-desc)
+[![Bugs](https://img.shields.io/github/issues/microsoft/vscode/bug.svg)](https://github.com/microsoft/vscode/issues?utf8=✓&q=is%3Aissue+is%3Aopen+label%3Abug)
+
+## The Repository
+
+This repository ("`Code - OSS`") is where we (Microsoft) develop the [Visual Studio Code](https://code.visualstudio.com) product together with the community. Not only do we work on code and issues here, but we also publish our [roadmap](https://github.com/microsoft/vscode/wiki/Roadmap), [monthly iteration plans](https://github.com/microsoft/vscode/wiki/Iteration-Plans), and our [endgame plans](https://github.com/microsoft/vscode/wiki/Running-the-Endgame). This source code is available to everyone under the standard [MIT license](https://github.com/microsoft/vscode/blob/main/LICENSE.txt).
+
+## Visual Studio Code
 
 <p align="center">
-  <img src="icon.png" alt="TaxCode logo" width="120" />
+  <img alt="VS Code in action" src="https://github.com/user-attachments/assets/56af271c-949d-454c-a3ea-16188c063414">
 </p>
 
-<p align="center">
-  <strong>A privacy-focused Windows desktop code editor distribution built from VS Code OSS.</strong>
-</p>
+[Visual Studio Code](https://code.visualstudio.com) is a distribution of the `Code - OSS` repository with Microsoft-specific customizations released under a traditional [Microsoft product license](https://code.visualstudio.com/License/).
 
-<p align="center">
-  <a href="https://github.com/Taxperia/TaxCode/releases"><img alt="Release" src="https://img.shields.io/github/v/release/Taxperia/TaxCode?include_prereleases&label=release"></a>
-  <a href="LICENSE.txt"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue"></a>
-  <img alt="Platform" src="https://img.shields.io/badge/platform-Windows-0078D4">
-  <img alt="Telemetry" src="https://img.shields.io/badge/telemetry-disabled-2E7D32">
-  <img alt="Upstream" src="https://img.shields.io/badge/upstream-VS%20Code%20OSS%201.138.0-1f6feb">
-</p>
+[Visual Studio Code](https://code.visualstudio.com) combines the simplicity of a code editor with what developers need for their core edit-build-debug cycle. It provides comprehensive code editing, navigation, and understanding support along with lightweight debugging, a rich extensibility model, and lightweight integration with existing tools.
 
-TaxCode is a customized distribution of [VS Code OSS](https://github.com/microsoft/vscode) for users who want a familiar editor with a stricter release profile: telemetry disabled, reproducible Windows variants, clear release artifacts, GitHub release update notices, and documented security checks.
-
-The default source tree represents the **plugin-enabled, telemetry-disabled** edition. Other editions are produced from the same source by build profiles; they are not separate forks.
-
-## Editions
-
-| Edition | Telemetry | Built-in chat / Copilot | Marketplace / plugins | Intended use |
-| --- | --- | --- | --- | --- |
-| `TaxCodePlugins` | Disabled | Enabled | Enabled | Main distribution and default source profile |
-| `TaxCodeLite` | Disabled | Excluded | Disabled/minimal | Plugin-free local editing and collaboration |
-| `TaxCodeVDS` | Disabled | Excluded | Disabled/minimal | Remote desktop and low-RAM environments |
-
-## Releases
-
-Each upstream VS Code version is published as one GitHub Release.
-
-Example:
-
-```text
-TaxCode 1.138.0
-  TaxCodePluginsUserSetup.exe
-  TaxCodeLiteUserSetup.exe
-  TaxCodeVDSUserSetup.exe
-  SHA256SUMS.txt
-  SECURITY-AUDIT.md
-```
-
-The GitHub-generated source archive for the release tag is the source for all editions. Installer files are uploaded as Release assets and are not committed to git.
-
-## Updates
-
-TaxCode checks the latest GitHub Release after startup and shows an update notification when a newer `taxcode-v*` tag is available. The check uses GitHub's public Releases API, sends no TaxCode telemetry, and can be disabled with:
-
-```json
-"taxcode.update.checkOnStartup": false
-```
-
-Manual checks are available from the Command Palette with `TaxCode: Check for Updates...`.
-
-## Security Posture
-
-- Telemetry is disabled in every packaged edition.
-- GitHub update checks use a non-telemetry request and open the Release page instead of silently installing code.
-- Runtime dependency audits are performed before release.
-- Release notes include SHA-256 checksums for installer verification.
-- Signing keys, local profiles, build caches, and installer outputs are excluded from source control.
-
-See [SECURITY.md](SECURITY.md) and [SECURITY-AUDIT.md](SECURITY-AUDIT.md) for details.
-
-## Build Notes
-
-TaxCode follows the VS Code OSS build system and adds profile-driven Windows packaging.
-
-Useful profile names:
-
-```powershell
-plugins
-lite
-vds
-all
-```
-
-The release workflow is intentionally source-first:
-
-1. Update the VS Code OSS baseline.
-2. Reapply TaxCode profile and privacy customizations.
-3. Run dependency and build checks.
-4. Produce Windows installers.
-5. Publish all installers under one versioned GitHub Release.
-
-## Repository Hygiene
-
-The working directory can become very large because VS Code builds generate dependency trees, extension bundles, compiled outputs, upstream snapshots, and installer folders. These are intentionally excluded from git:
-
-- `node_modules/`
-- `.tmp/`
-- `.build/`
-- `out*/`
-- `.artifacts/`
-- generated `TaxCode*-win32-x64/` folders
-- installer `.exe` files
-- local signing material
+Visual Studio Code is updated monthly with new features and bug fixes. You can download it for Windows, macOS, and Linux on the [Visual Studio Code website](https://code.visualstudio.com/Download). To get the latest releases every day, install the [Insiders build](https://code.visualstudio.com/insiders).
 
 ## Contributing
 
-Issues and pull requests are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a change.
+There are many ways in which you can participate in this project, for example:
 
-## Upstream
+* [Submit bugs and feature requests](https://github.com/microsoft/vscode/issues), and help us verify them as they are checked in
+* Review [source code changes](https://github.com/microsoft/vscode/pulls)
+* Review the [documentation](https://github.com/microsoft/vscode-docs) and make pull requests for anything from typos to new content.
 
-TaxCode is based on VS Code OSS. Microsoft Visual Studio Code and VS Code are trademarks of Microsoft Corporation. TaxCode is an independent distribution and is not affiliated with, endorsed by, or sponsored by Microsoft.
+If you are interested in fixing issues and contributing directly to the codebase, please see the document [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute), which covers the following:
+
+* [How to build and run from source](https://github.com/microsoft/vscode/wiki/How-to-Contribute)
+* [The development workflow, including debugging and running tests](https://github.com/microsoft/vscode/wiki/How-to-Contribute#debugging)
+* [Coding guidelines](https://github.com/microsoft/vscode/wiki/Coding-Guidelines)
+* [Submitting pull requests](https://github.com/microsoft/vscode/wiki/How-to-Contribute#pull-requests)
+* [Finding an issue to work on](https://github.com/microsoft/vscode/wiki/How-to-Contribute#where-to-contribute)
+* [Contributing to translations](https://aka.ms/vscodeloc)
+
+## Feedback
+
+* Ask a question on [Stack Overflow](https://stackoverflow.com/questions/tagged/vscode)
+* [Request a new feature](CONTRIBUTING.md)
+* Upvote [popular feature requests](https://github.com/microsoft/vscode/issues?q=is%3Aopen+is%3Aissue+label%3Afeature-request+sort%3Areactions-%2B1-desc)
+* [File an issue](https://github.com/microsoft/vscode/issues)
+* Connect with the extension author community on [GitHub Discussions](https://github.com/microsoft/vscode-discussions/discussions) or [Slack](https://aka.ms/vscode-dev-community)
+* Follow [@code](https://x.com/code) and let us know what you think!
+
+See our [wiki](https://github.com/microsoft/vscode/wiki/Feedback-Channels) for a description of each of these channels and information on some other available community-driven channels.
+
+## Related Projects
+
+Many of the core components and extensions to VS Code live in their own repositories on GitHub. For example, the [node debug adapter](https://github.com/microsoft/vscode-node-debug) and the [mono debug adapter](https://github.com/microsoft/vscode-mono-debug) repositories are separate from each other. For a complete list, please visit the [Related Projects](https://github.com/microsoft/vscode/wiki/Related-Projects) page on our [wiki](https://github.com/microsoft/vscode/wiki).
+
+## Bundled Extensions
+
+VS Code includes a set of built-in extensions located in the [extensions](extensions) folder, including grammars and snippets for many languages. Extensions that provide rich language support (inline suggestions, Go to Definition) for a language have the suffix `language-features`. For example, the `json` extension provides coloring for `JSON` and the `json-language-features` extension provides rich language support for `JSON`.
+
+## Development Container
+
+This repository includes a Visual Studio Code Dev Containers / GitHub Codespaces development container.
+
+* For [Dev Containers](https://aka.ms/vscode-remote/download/containers), use the **Dev Containers: Clone Repository in Container Volume...** command, which creates a Docker volume for better disk I/O on macOS and Windows.
+  * If you already have VS Code and Docker installed, you can also click [here](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/microsoft/vscode) to get started. This will cause VS Code to automatically install the Dev Containers extension if needed, clone the source code into a container volume, and spin up a dev container for use.
+
+* For Codespaces, install the [GitHub Codespaces](https://marketplace.visualstudio.com/items?itemName=GitHub.codespaces) extension in VS Code, and use the **Codespaces: Create New Codespace** command.
+
+Docker / the Codespace should have at least **4 cores and 6 GB of RAM (8 GB recommended)** to run a full build. See the [development container README](.devcontainer/README.md) for more information.
+
+## Code of Conduct
+
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information, see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
 ## License
 
-The source remains under the [MIT License](LICENSE.txt), following the upstream VS Code OSS license.
+Copyright (c) Microsoft Corporation. All rights reserved.
+
+Licensed under the [MIT](LICENSE.txt) license.

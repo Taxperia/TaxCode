@@ -154,6 +154,11 @@ type DictationCleanupModel = 'none' | 'copilot-utility-small' | 'gpt-5.6-luna';
  */
 type DictationBackend = 'nemo' | 'mai';
 
+type BackendFinalizationResult = {
+	readonly text: string | undefined;
+	readonly timedOut: boolean;
+};
+
 export function isDictationEntitled(entitlement: ChatEntitlement, isInternal: boolean, usesMai: boolean): boolean {
 	return !usesMai || entitlement !== ChatEntitlement.Enterprise || isInternal;
 }
@@ -483,6 +488,9 @@ export class ChatSpeechToTextService extends Disposable implements IChatSpeechTo
 	private _maiReceivedFinal = false;
 
 	get isConfigured(): boolean {
+		if (this._productService?.taxCodeExtensionsEnabled === false) {
+			return false;
+		}
 		if (this._configurationService.getValue<boolean>(ENABLED_SETTING) === false) {
 			return false;
 		}
@@ -564,6 +572,9 @@ export class ChatSpeechToTextService extends Disposable implements IChatSpeechTo
 		this._preparingContextKey = ChatContextKeys.speechToTextPreparing.bindTo(contextKeyService);
 		this._usesMaiContextKey = ChatContextKeys.speechToTextUsesMai.bindTo(contextKeyService);
 		this._updateConfiguredContextKey();
+		if (this._productService.taxCodeExtensionsEnabled === false) {
+			return;
+		}
 		void this._refreshGitHubSession();
 		this._register(this._authenticationService.onDidChangeSessions(e => {
 			if (e.providerId === 'github') {
@@ -662,7 +673,7 @@ export class ChatSpeechToTextService extends Disposable implements IChatSpeechTo
 	}
 
 	private _updateConfiguredContextKey(): void {
-		this._usesMaiContextKey.set(this._getBackend() === 'mai');
+		this._usesMaiContextKey.set(this._productService?.taxCodeExtensionsEnabled !== false && this._getBackend() === 'mai');
 		this._configuredContextKey.set(this.isConfigured);
 	}
 
@@ -1067,7 +1078,9 @@ export class ChatSpeechToTextService extends Disposable implements IChatSpeechTo
 		if (generation !== this._sessionGeneration) {
 			return;
 		}
-		if (status.state !== LocalTranscriptionModelState.Ready && status.state !== LocalTranscriptionModelState.Error) {
+		if (status.state === LocalTranscriptionModelState.Error) {
+			this._handleModelStatus(status);
+		} else if (status.state !== LocalTranscriptionModelState.Ready) {
 			this._trackModelPreparation();
 		}
 	}
@@ -1248,9 +1261,11 @@ export class ChatSpeechToTextService extends Disposable implements IChatSpeechTo
 	 * attached to the notification when the failure is actionable.
 	 */
 	private _failSession(errorCode: string, message: string, action?: IAction): void {
-		if (this._state === ChatSpeechToTextState.Idle) {
+		if (this._state === ChatSpeechToTextState.Idle && this._startInProgress === undefined) {
 			return;
 		}
+		this._sessionGeneration++;
+		this._startGeneration++;
 		this._sessionErrorCode = this._sessionErrorCode || errorCode;
 		this._logSessionTelemetry('error');
 		this._cancelBackend();
@@ -1306,18 +1321,21 @@ export class ChatSpeechToTextService extends Disposable implements IChatSpeechTo
 		let text = liveTranscript;
 		let hasAuthoritativeFinal = false;
 		try {
-			const finalText = await this._finishBackend();
+			const finalization = await this._finishBackend();
 			if (generation !== this._sessionGeneration) {
 				return undefined;
 			}
 			hasAuthoritativeFinal = this._activeBackend === 'mai' && this._maiReceivedFinal;
 			text = hasAuthoritativeFinal
-				? selectAuthoritativeDictationTranscript(liveTranscript, finalText)
+				? selectAuthoritativeDictationTranscript(liveTranscript, finalization.text)
 				: selectFinalDictationTranscript(
 					liveTranscript,
-					finalText,
+					finalization.text,
 					this._activeBackend !== 'mai' && options?.preserveLiveTranscript === true,
 				);
+			if (this._activeBackend === 'nemo' && finalization.timedOut && !stripDictationFillers(text)) {
+				this._sessionErrorCode = this._sessionErrorCode || 'transcribe.timeout';
+			}
 		} catch (err) {
 			if (generation !== this._sessionGeneration) {
 				return undefined;
@@ -1521,7 +1539,7 @@ export class ChatSpeechToTextService extends Disposable implements IChatSpeechTo
 	 * the on-device service's `stop()`, or — for MAI — a `ptt_end` followed by a
 	 * short wait for the backend's final `transcription`.
 	 */
-	private async _finishBackend(): Promise<string | undefined> {
+	private async _finishBackend(): Promise<BackendFinalizationResult> {
 		if (this._activeBackend === 'mai') {
 			const finalTranscript = this._maiFinalTranscript = new DeferredPromise<void>();
 			this._transcriptionClient.sendPttEnd(this._maiTurnId);
@@ -1535,12 +1553,12 @@ export class ChatSpeechToTextService extends Disposable implements IChatSpeechTo
 			if (!receivedFinal) {
 				this._logService.warn(`[chat-stt] cloud final transcription timed out after ${MAI_FINAL_TIMEOUT_MS}ms; using streamed transcript`);
 			}
-			return this._transcript;
+			return { text: this._transcript, timedOut: !receivedFinal };
 		}
 		const stop = this._localTranscription.stop();
 		const finalText = await raceTimeout(stop, NEMO_FINAL_TIMEOUT_MS);
 		if (finalText !== undefined) {
-			return finalText;
+			return { text: finalText, timedOut: false };
 		}
 		this._logService.warn(`[chat-stt] on-device final transcription timed out after ${NEMO_FINAL_TIMEOUT_MS}ms; using streamed transcript`);
 		const cancel = this._localTranscription.cancel();
@@ -1554,7 +1572,7 @@ export class ChatSpeechToTextService extends Disposable implements IChatSpeechTo
 				this._pendingLocalTeardown = undefined;
 			}
 		});
-		return this._transcript;
+		return { text: this._transcript, timedOut: true };
 	}
 
 	async cancel(): Promise<void> {

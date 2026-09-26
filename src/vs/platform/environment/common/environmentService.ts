@@ -114,11 +114,6 @@ export abstract class AbstractNativeEnvironmentService implements INativeEnviron
 			return resolve(cliBuiltinExtensionsDir);
 		}
 
-		const customBuiltinExtensionsDir = this.productService.builtinExtensionsFolderName;
-		if (customBuiltinExtensionsDir) {
-			return joinPath(this.userHome, this.productService.dataFolderName, customBuiltinExtensionsDir).fsPath;
-		}
-
 		return normalize(join(FileAccess.asFileUri('').fsPath, '..', 'extensions'));
 	}
 
@@ -203,6 +198,10 @@ export abstract class AbstractNativeEnvironmentService implements INativeEnviron
 	}
 
 	get disableExtensions(): boolean | string[] {
+		if (this.productService.taxCodeExtensionsEnabled === false) {
+			return true;
+		}
+
 		if (this.args['disable-extensions']) {
 			return true;
 		}
@@ -257,10 +256,10 @@ export abstract class AbstractNativeEnvironmentService implements INativeEnviron
 	get crashReporterDirectory(): string | undefined { return this.args['crash-reporter-directory']; }
 
 	@memoize
-	get disableTelemetry(): boolean { return !!this.args['disable-telemetry']; }
+	get disableTelemetry(): boolean { return this.productService.enableTelemetry === false || !!this.args['disable-telemetry']; }
 
 	@memoize
-	get disableExperiments(): boolean { return !!this.args['disable-experiments']; }
+	get disableExperiments(): boolean { return this.productService.taxCodeLowMemoryMode === true || !!this.args['disable-experiments']; }
 
 	@memoize
 	get disableWorkspaceTrust(): boolean { return !!this.args['disable-workspace-trust']; }

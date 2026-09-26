@@ -238,6 +238,10 @@ export class StartupPageRunnerContribution extends Disposable implements IWorkbe
 			return; // skip welcome flag is set
 		}
 
+		if (this.productService.taxCodeProfile) {
+			return; // TaxCode builds do not bundle the configured default chat agent
+		}
+
 		if (isWeb) {
 			return; // not supported on web (e.g. codespaces, github.dev)
 		}

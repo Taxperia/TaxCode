@@ -1,9 +1,4 @@
 #define RootLicenseFileName FileExists(RepoDir + '\LICENSE.rtf') ? 'LICENSE.rtf' : 'LICENSE.txt'
-#define SetupIconPath FileExists(RepoDir + '\build\win32\taxcode-lite\setup.ico') ? (RepoDir + '\build\win32\taxcode-lite\setup.ico') : (RepoDir + '\resources\win32\code.ico')
-#define ResolvedProfileSettingsPath ProfileSettingsPath != "" ? ProfileSettingsPath : (RepoDir + '\build\win32\taxcode-lite\settings.json')
-#define ResolvedProfileArgvPath ProfileArgvPath != "" ? ProfileArgvPath : (RepoDir + '\build\win32\taxcode-lite\argv.json')
-#define ResolvedProfileUserExtensionsPath ProfileUserExtensionsPath != "" ? ProfileUserExtensionsPath : (RepoDir + '\build\win32\taxcode-lite\user-extensions')
-#define ResolvedProfileBuiltinExtensionsPath ProfileBuiltinExtensionsPath != "" ? ProfileBuiltinExtensionsPath : (RepoDir + '\build\win32\taxcode-lite\builtin-extensions')
 #define LocalizedLanguageFile(Language = "") \
     DirExists(RepoDir + "\licenses") && Language != "" \
       ? ('; LicenseFile: "' + RepoDir + '\licenses\LICENSE-' + Language + '.rtf"') \
@@ -13,24 +8,21 @@
 AppId={#AppId}
 AppName={#NameLong}
 AppVerName={#NameVersion}
-AppPublisher={#NameLong}
+AppPublisher=Microsoft Corporation
+AppPublisherURL=https://code.visualstudio.com/
+AppSupportURL=https://code.visualstudio.com/
+AppUpdatesURL=https://code.visualstudio.com/
 DefaultGroupName={#NameLong}
 AllowNoIcons=yes
 OutputDir={#OutputDir}
-#if "user" == InstallTarget
-OutputBaseFilename={#NameShort}UserSetup
-#else
-OutputBaseFilename={#NameShort}Setup
-#endif
+OutputBaseFilename=VSCodeSetup
 Compression=lzma
 SolidCompression=yes
 AppMutex={code:GetAppMutex}
 SetupMutex={code:GetSetupMutex}
 WizardImageFile="{#RepoDir}\resources\win32\inno-big-100.bmp,{#RepoDir}\resources\win32\inno-big-125.bmp,{#RepoDir}\resources\win32\inno-big-150.bmp,{#RepoDir}\resources\win32\inno-big-175.bmp,{#RepoDir}\resources\win32\inno-big-200.bmp,{#RepoDir}\resources\win32\inno-big-225.bmp,{#RepoDir}\resources\win32\inno-big-250.bmp"
 WizardSmallImageFile="{#RepoDir}\resources\win32\inno-small-100.bmp,{#RepoDir}\resources\win32\inno-small-125.bmp,{#RepoDir}\resources\win32\inno-small-150.bmp,{#RepoDir}\resources\win32\inno-small-175.bmp,{#RepoDir}\resources\win32\inno-small-200.bmp,{#RepoDir}\resources\win32\inno-small-225.bmp,{#RepoDir}\resources\win32\inno-small-250.bmp"
-#ifndef TaxCodeSkipSetupIcon
-SetupIconFile={#SetupIconPath}
-#endif
+SetupIconFile={#RepoDir}\taxcode.ico
 UninstallDisplayIcon={app}\{#ExeBasename}.exe
 ChangesEnvironment=true
 ChangesAssociations=true
@@ -82,22 +74,6 @@ Type: filesandordirs; Name: "{app}\{#VersionedResourcesFolder}\resources\app\nod
 Type: filesandordirs; Name: "{app}\{#VersionedResourcesFolder}\resources\app\node_modules.asar.unpacked"; Check: IsNotBackgroundUpdate
 Type: files; Name: "{app}\{#VersionedResourcesFolder}\resources\app\node_modules.asar"; Check: IsNotBackgroundUpdate
 Type: files; Name: "{app}\{#VersionedResourcesFolder}\resources\app\Credits_45.0.2454.85.html"; Check: IsNotBackgroundUpdate
-Type: filesandordirs; Name: "{userappdata}\{#NameShort}\Backups"
-Type: filesandordirs; Name: "{userappdata}\{#NameShort}\blob_storage"
-Type: filesandordirs; Name: "{userappdata}\{#NameShort}\Cache"
-Type: filesandordirs; Name: "{userappdata}\{#NameShort}\CachedData"
-Type: filesandordirs; Name: "{userappdata}\{#NameShort}\Code Cache"
-Type: filesandordirs; Name: "{userappdata}\{#NameShort}\GPUCache"
-Type: filesandordirs; Name: "{userappdata}\{#NameShort}\History"
-Type: filesandordirs; Name: "{userappdata}\{#NameShort}\Local Storage"
-Type: filesandordirs; Name: "{userappdata}\{#NameShort}\logs"
-Type: filesandordirs; Name: "{userappdata}\{#NameShort}\Session Storage"
-Type: filesandordirs; Name: "{userappdata}\{#NameShort}\User\globalStorage"
-Type: filesandordirs; Name: "{userappdata}\{#NameShort}\User\workspaceStorage"
-#if "user" == InstallTarget
-Type: filesandordirs; Name: "{%USERPROFILE}\{#DataFolderName}\extensions"
-Type: filesandordirs; Name: "{%USERPROFILE}\{#DataFolderName}\builtin-extensions"
-#endif
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\_"
@@ -117,27 +93,17 @@ Name: "runcode"; Description: "{cm:RunAfter,{#NameShort}}"; GroupDescription: "{
 
 [Dirs]
 Name: "{app}"; AfterInstall: DisableAppDirInheritance
-#if "user" == InstallTarget
-Name: "{%USERPROFILE}\{#DataFolderName}\extensions"; Flags: uninsneveruninstall
-Name: "{%USERPROFILE}\{#DataFolderName}\builtin-extensions"; Flags: uninsneveruninstall
-#endif
 
 [Files]
-Source: "*"; Excludes: "\CodeSignSummary*.md,\tools,\tools\*,\policies,\policies\*,\appx,\appx\*,\{#ProductJsonRelativePath},\{#ExeBasename}.exe,\{#ExeBasename}.VisualElementsManifest.xml,\bin,\bin\*,*\getMachineId-*.js.map"; DestDir: "{code:GetDestDir}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "*"; Excludes: "\CodeSignSummary*.md,\tools,\tools\*,\policies,\policies\*,\appx,\appx\*,\{#ProductJsonRelativePath},\{#ExeBasename}.exe,\{#ExeBasename}.VisualElementsManifest.xml,\bin,\bin\*"; DestDir: "{code:GetDestDir}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#ExeBasename}.exe"; DestDir: "{code:GetDestDir}"; DestName: "{code:GetExeBasename}"; Flags: ignoreversion
 Source: "{#ExeBasename}.VisualElementsManifest.xml"; DestDir: "{code:GetDestDir}"; DestName: "{code:GetVisualElementsManifest}"; Flags: ignoreversion
-Source: "tools\*"; DestDir: "{app}\{#VersionedResourcesFolder}\tools"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "tools\*"; DestDir: "{app}\{#VersionedResourcesFolder}\tools"; Flags: ignoreversion
 Source: "policies\*"; DestDir: "{code:GetDestDir}\{#VersionedResourcesFolder}\policies"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "bin\{#TunnelApplicationName}.exe"; DestDir: "{code:GetDestDir}\bin"; DestName: "{code:GetBinDirTunnelApplicationFilename}"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "bin\{#ApplicationName}.cmd"; DestDir: "{code:GetDestDir}\bin"; DestName: "{code:GetBinDirApplicationCmdFilename}"; Flags: ignoreversion
 Source: "bin\{#ApplicationName}"; DestDir: "{code:GetDestDir}\bin"; DestName: "{code:GetBinDirApplicationFilename}"; Flags: ignoreversion
-Source: "{#ProductJsonPath}"; DestDir: "{code:GetDestDir}\{#VersionedResourcesFolder}\resources\app"; DestName: "product.json"; Flags: ignoreversion
-#if "user" == InstallTarget
-Source: "{#ResolvedProfileSettingsPath}"; DestDir: "{userappdata}\{#NameShort}\User"; Flags: ignoreversion uninsneveruninstall skipifsourcedoesntexist
-Source: "{#ResolvedProfileArgvPath}"; DestDir: "{userappdata}\..\..\{#DataFolderName}"; Flags: ignoreversion uninsneveruninstall skipifsourcedoesntexist
-Source: "{#ResolvedProfileUserExtensionsPath}\*"; DestDir: "{%USERPROFILE}\{#DataFolderName}\extensions"; Flags: ignoreversion recursesubdirs createallsubdirs uninsneveruninstall skipifsourcedoesntexist
-Source: "{#ResolvedProfileBuiltinExtensionsPath}\*"; DestDir: "{%USERPROFILE}\{#DataFolderName}\builtin-extensions"; Flags: ignoreversion recursesubdirs createallsubdirs uninsneveruninstall skipifsourcedoesntexist
-#endif
+Source: "{#ProductJsonPath}"; DestDir: "{code:GetDestDir}\{#VersionedResourcesFolder}\resources\app"; Flags: ignoreversion
 #ifdef AppxPackageName
 Source: "appx\{#AppxPackage}"; DestDir: "{code:GetDestDir}\{#VersionedResourcesFolder}\appx"; BeforeInstall: RemoveAppxPackage; Flags: ignoreversion; Check: ShouldUseWindows11ContextMenu
 Source: "appx\{#AppxPackageDll}"; DestDir: "{code:GetDestDir}\{#VersionedResourcesFolder}\appx"; AfterInstall: AddAppxPackage; Flags: ignoreversion; Check: ShouldUseWindows11ContextMenu
@@ -1416,7 +1382,7 @@ begin
 
   #if "user" == InstallTarget
     if not WizardSilent() and IsAdmin() then begin
-      if MsgBox('This User Installer is not meant to be run as an Administrator. If you would like to install {#NameLong} for all users in this system, run the System Installer instead. Are you sure you want to continue?', mbError, MB_OKCANCEL) = IDCANCEL then begin
+      if MsgBox('This User Installer is not meant to be run as an Administrator. If you would like to install VS Code for all users in this system, download the System Installer instead from https://code.visualstudio.com. Are you sure you want to continue?', mbError, MB_OKCANCEL) = IDCANCEL then begin
         Result := False;
       end;
     end;

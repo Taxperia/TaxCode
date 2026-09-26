@@ -10,20 +10,21 @@ import * as path from 'path';
 import rcedit from 'rcedit';
 import vfs from 'vinyl-fs';
 import pkg from '../package.json' with { type: 'json' };
+import productConfiguration from '../product.json' with { type: 'json' };
 import { getVersion } from './lib/getVersion.ts';
 import * as task from './lib/gulp/task.ts';
 import * as util from './lib/util.ts';
-import { getEffectiveProduct, getPackageOutputFolderName, getProductProfile, type ProductConfiguration } from './lib/productProfile.ts';
+import { applyTaxCodeBuildProfile, getTaxCodeBuildFolderName, getTaxCodeBuildProfile } from './taxcode/profile.ts';
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 
 const repoPath = path.dirname(import.meta.dirname);
+const taxCodeProfile = getTaxCodeBuildProfile();
+const product = applyTaxCodeBuildProfile(productConfiguration, taxCodeProfile);
 const commit = getVersion(repoPath);
-const profile = getProductProfile();
-const product = getEffectiveProduct();
-const buildPath = (arch: string) => path.join(path.dirname(repoPath), getPackageOutputFolderName('win32', arch));
-const setupDir = (arch: string, target: string) => path.join(repoPath, '.build', `win32-${arch}`, `${target}-setup`, product.nameShort);
+const buildPath = (arch: string) => path.join(path.dirname(repoPath), getTaxCodeBuildFolderName('win32', arch, taxCodeProfile));
+const setupDir = (arch: string, target: string) => path.join(repoPath, '.build', `win32-${arch}`, `${taxCodeProfile.name}-${target}-setup`);
 const innoSetupPath = path.join(path.dirname(path.dirname(require.resolve('innosetup'))), 'bin', 'ISCC.exe');
 const signWin32Path = path.join(repoPath, 'build', 'azure-pipelines', 'common', 'sign-win32.ts');
 
@@ -45,11 +46,9 @@ function packageInnoSetup(iss: string, options: { definitions?: Record<string, u
 	const defs = keys.map(key => `/d${key}=${definitions[key]}`);
 	const args = [
 		iss,
-		...defs
+		...defs,
+		`/sesrp=node ${signWin32Path} $f`
 	];
-	if (process.env['SIGN'] === 'true') {
-		args.push(`/sesrp=node ${signWin32Path} $f`);
-	}
 
 	cp.spawn(innoSetupPath, args, { stdio: ['ignore', 'inherit', 'inherit'] })
 		.on('error', cb)
@@ -71,13 +70,13 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 		const x64AppId = target === 'system' ? product.win32x64AppId : product.win32x64UserAppId;
 		const arm64AppId = target === 'system' ? product.win32arm64AppId : product.win32arm64UserAppId;
 
-		const sourcePath = process.env['TAXCODE_SETUP_SOURCE_DIR']?.trim() || buildPath(arch);
+		const sourcePath = buildPath(arch);
 		const outputPath = setupDir(arch, target);
 		fs.mkdirSync(outputPath, { recursive: true });
 
-		const quality = (product as ProductConfiguration & { quality?: string }).quality || 'dev';
-		const useVersionedUpdate = (product as ProductConfiguration & { win32VersionedUpdate?: boolean })?.win32VersionedUpdate;
-		const versionedResourcesFolder = useVersionedUpdate ? (commit ?? 'devbuild0000').substring(0, 10) : '';
+		const quality = (product as typeof product & { quality?: string }).quality || 'dev';
+		const useVersionedUpdate = (product as typeof product & { win32VersionedUpdate?: boolean })?.win32VersionedUpdate;
+		const versionedResourcesFolder = useVersionedUpdate ? commit!.substring(0, 10) : '';
 		const issPath = path.join(import.meta.dirname, 'win32', 'code.iss');
 		const productJsonRelativePath = path.join(versionedResourcesFolder, 'resources/app/product.json');
 		const originalProductJsonPath = path.join(sourcePath, productJsonRelativePath);
@@ -91,7 +90,7 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 			DirName: product.win32DirName,
 			Version: pkg.version,
 			RawVersion: pkg.version.replace(/-\w+$/, ''),
-			Commit: commit ?? 'devbuild0000',
+			Commit: commit,
 			NameVersion: product.win32NameVersion + (target === 'user' ? ' (User)' : ''),
 			ExeBasename: product.nameShort,
 			RegValueName: product.win32RegValueName,
@@ -101,7 +100,6 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 			TunnelServiceMutex: product.win32TunnelServiceMutex,
 			TunnelApplicationName: product.tunnelApplicationName,
 			ApplicationName: product.applicationName,
-			DataFolderName: product.dataFolderName,
 			Arch: arch,
 			AppId: { 'x64': x64AppId, 'arm64': arm64AppId }[arch],
 			IncompatibleTargetAppId: { 'x64': product.win32x64AppId, 'arm64': product.win32arm64AppId }[arch],
@@ -114,10 +112,6 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 			InstallTarget: target,
 			ProductJsonRelativePath: productJsonRelativePath,
 			ProductJsonPath: productJsonPath,
-			ProfileArgvPath: profile.installer.argvFile,
-			ProfileBuiltinExtensionsPath: profile.installer.builtinExtensionsDir,
-			ProfileSettingsPath: profile.installer.settingsFile,
-			ProfileUserExtensionsPath: profile.installer.userExtensionsDir,
 			VersionedResourcesFolder: versionedResourcesFolder,
 			Quality: quality
 		};
@@ -130,10 +124,6 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 			if (ctxMenu && ctxMenu[arch]) {
 				definitions['FileExplorerContextMenuCLSID'] = ctxMenu[arch].clsid;
 			}
-		}
-
-		if (process.env['TAXCODE_SKIP_SETUP_ICON'] === '1') {
-			definitions['TaxCodeSkipSetupIcon'] = 'true';
 		}
 
 		fs.writeFileSync(productJsonPath, JSON.stringify(productJson, undefined, '\t'));
@@ -161,7 +151,7 @@ function copyInnoUpdater(arch: string) {
 
 function updateIcon(executablePath: string): task.CallbackTask {
 	return cb => {
-		const icon = path.join(repoPath, 'resources', 'win32', 'code.ico');
+		const icon = path.join(repoPath, 'taxcode.ico');
 		rcedit(executablePath, { icon }, cb);
 	};
 }

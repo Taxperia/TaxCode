@@ -662,10 +662,6 @@ export class AgentPluginsViewsContribution extends Disposable implements IWorkbe
 		registerAction2(AgentPluginsBrowseCommand);
 		registerAction2(RefreshPluginMarketplacesCommand);
 
-		if (!VIEW_CONTAINER) {
-			return;
-		}
-
 		Registry.as<IViewsRegistry>(ViewExtensions.ViewsRegistry).registerViews([
 			{
 				id: InstalledAgentPluginsViewId,

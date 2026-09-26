@@ -13,7 +13,7 @@ import { getElectronVersion } from './electronVersion.ts';
 import { getVersion } from './getVersion.ts';
 import { downloadFeedPackage } from './azureFeed.ts';
 import electron from '@vscode/gulp-electron';
-import { getEffectiveProduct, type ProductConfiguration } from './productProfile.ts';
+import { applyTaxCodeBuildProfile } from '../taxcode/profile.ts';
 
 type DarwinDocumentSuffix = 'document' | 'script' | 'file' | 'source code';
 type DarwinDocumentType = {
@@ -30,11 +30,10 @@ function isDocumentSuffix(str?: string): str is DarwinDocumentSuffix {
 }
 
 const root = path.dirname(path.dirname(import.meta.dirname));
-const product = getEffectiveProduct();
-const extendedProduct = product as ProductConfiguration & { darwinCredits?: string; electronArtifactFeed?: string };
+const product = applyTaxCodeBuildProfile(JSON.parse(fs.readFileSync(path.join(root, 'product.json'), 'utf8')));
 const commit = getVersion(root);
-const useVersionedUpdate = process.platform === 'win32' && (product as ProductConfiguration & { win32VersionedUpdate?: boolean })?.win32VersionedUpdate;
-const versionedResourcesFolder = useVersionedUpdate ? (commit ?? 'devbuild0000').substring(0, 10) : '';
+const useVersionedUpdate = process.platform === 'win32' && (product as typeof product & { win32VersionedUpdate?: boolean })?.win32VersionedUpdate;
+const versionedResourcesFolder = useVersionedUpdate ? commit!.substring(0, 10) : '';
 
 function createTemplate(input: string): (params: Record<string, string>) => string {
 	return (params: Record<string, string>) => {
@@ -44,7 +43,7 @@ function createTemplate(input: string): (params: Record<string, string>) => stri
 	};
 }
 
-const darwinCreditsTemplate = extendedProduct.darwinCredits && createTemplate(fs.readFileSync(path.join(root, extendedProduct.darwinCredits), 'utf8'));
+const darwinCreditsTemplate = product.darwinCredits && createTemplate(fs.readFileSync(path.join(root, product.darwinCredits), 'utf8'));
 
 /**
  * Generate a `DarwinDocumentType` given a list of file extensions, an icon name, and an optional suffix or file type name.
@@ -114,7 +113,7 @@ const { electronVersion, msBuildId } = getElectronVersion();
 // (which OSS builds use when no feed is configured). Each universal package
 // contains exactly one file, which is streamed back as a `Response` and
 // validated against the feed's `SHASUMS256.txt`.
-const electronFeed: string | undefined = extendedProduct.electronArtifactFeed;
+const electronFeed: string | undefined = product.electronArtifactFeed;
 
 // Maps the artifact file name `@vscode/gulp-electron` requests to the matching
 // universal package name in the feed, or `undefined` when it is not mirrored.
@@ -239,7 +238,7 @@ export const config = {
 	darwinForceDarkModeSupport: true,
 	darwinCredits: darwinCreditsTemplate ? Buffer.from(darwinCreditsTemplate({ commit: commit, date: new Date().toISOString() })) : undefined,
 	linuxExecutableName: product.applicationName,
-	winIcon: 'resources/win32/code.ico',
+	winIcon: 'taxcode.ico',
 	token: process.env['GITHUB_TOKEN'],
 	repo: electronAssetResolver,
 	validateChecksum: true,

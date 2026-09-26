@@ -18,6 +18,7 @@ import { getErrorMessage } from '../../../../base/common/errors.js';
 import { IWorkbenchExtensionManagementService } from '../../extensionManagement/common/extensionManagement.js';
 import { toExtensionDescription } from '../common/extensions.js';
 import { IWorkbenchEnvironmentService } from '../../environment/common/environmentService.js';
+import { IProductService } from '../../../../platform/product/common/productService.js';
 
 export class CachedExtensionScanner {
 
@@ -32,6 +33,7 @@ export class CachedExtensionScanner {
 		@IUserDataProfileService private readonly _userDataProfileService: IUserDataProfileService,
 		@IWorkbenchExtensionManagementService private readonly _extensionManagementService: IWorkbenchExtensionManagementService,
 		@IWorkbenchEnvironmentService private readonly _environmentService: IWorkbenchEnvironmentService,
+		@IProductService private readonly _productService: IProductService,
 		@ILogService private readonly _logService: ILogService,
 	) {
 		this.scannedExtensions = new Promise<IExtensionDescription[]>((resolve, reject) => {
@@ -50,6 +52,10 @@ export class CachedExtensionScanner {
 	}
 
 	private async _scanInstalledExtensions(): Promise<IExtensionDescription[]> {
+		if (this._productService.taxCodeExtensionsEnabled === false) {
+			return [];
+		}
+
 		try {
 			const language = platform.language;
 			const result = await Promise.allSettled([

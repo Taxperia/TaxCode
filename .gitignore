@@ -34,8 +34,6 @@ vscode-telemetry-docs/
 test-output.json
 test/componentFixtures/.screenshots/*
 dist
-.artifacts/
-/*UserSetup.exe
 .playwright-cli
 .playwright-mcp
 .claude/

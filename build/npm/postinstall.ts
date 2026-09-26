@@ -316,8 +316,10 @@ async function main() {
 	log('.', `Running ${parallelTasks.length} npm installs with concurrency ${concurrency}...`);
 	await runWithConcurrency(parallelTasks, concurrency);
 
-	child_process.execSync('git config pull.rebase merges');
-	child_process.execSync('git config blame.ignoreRevsFile .git-blame-ignore-revs');
+	if (fs.existsSync(path.join(root, '.git'))) {
+		child_process.execSync('git config pull.rebase merges');
+		child_process.execSync('git config blame.ignoreRevsFile .git-blame-ignore-revs');
+	}
 
 	fs.writeFileSync(stateFile, JSON.stringify(_state));
 	fs.writeFileSync(stateContentsFile, JSON.stringify(computeContents()));
