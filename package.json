@@ -106,7 +106,7 @@
     "reauth-feed": "artifacts-npm-credprovider --force"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.82.0",
+    "@anthropic-ai/sdk": "^0.129.0",
     "@devcontainers/cli": "0.88.0",
     "@github/copilot-sdk": "1.0.15-unstable.35393089353.gfc44743",
     "@microsoft/1ds-core-js": "^3.2.13",
@@ -167,7 +167,7 @@
     "ssh2": "^1.16.0",
     "tar": "^7.5.20",
     "tas-client": "0.4.6",
-    "undici": "^7.28.0",
+    "undici": "^7.30.0",
     "vscode-oniguruma": "1.7.0",
     "vscode-regexpp": "^3.1.0",
     "vscode-textmate": "^9.3.2",
