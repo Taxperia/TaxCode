@@ -42,6 +42,27 @@ npm.cmd run taxcode:setup:low-memory
 npm.cmd run taxcode:setup:all
 ```
 
+## GitHub Üzerinden Otomatik Güncelleme
+
+TaxCode, Windows kullanıcı kurulumunda VS Code'un yerleşik güncelleme arayüzünü kullanır. Güncelleme denetimi Microsoft sunucularına değil, Taxperia/TaxCode deposundaki en son GitHub Release içine yüklenen `taxcode-update.json` dosyasına gider:
+
+```text
+https://github.com/Taxperia/TaxCode/releases/latest/download/taxcode-update.json
+```
+
+`taxcode:setup:all` üç kurulum dosyasını `.build/taxcode/installers` klasörüne kopyalar ve hepsi hazır olduğunda manifesti otomatik üretir. Bir sürümü yayımlarken aynı GitHub Release içine şu dört dosyanın tamamını yükleyin:
+
+```text
+TaxCode-<sürüm>-Plugins-UserSetup-x64.exe
+TaxCode-<sürüm>-NoExtensions-UserSetup-x64.exe
+TaxCode-<sürüm>-LowMemory-UserSetup-x64.exe
+taxcode-update.json
+```
+
+Release etiketi `taxcode-v<sürüm>` biçiminde olmalıdır; örneğin `taxcode-v1.139.2`. Manifest her profil için doğru kurulum dosyasının GitHub adresini ve SHA-256 özetini içerir. Uygulama yalnızca `github.com/Taxperia/TaxCode/releases/download/...` adreslerini kabul eder ve indirilen dosyayı çalıştırmadan önce özeti doğrular.
+
+Bu güncelleyici kodunu içermeyen eski TaxCode sürümleri ilk kez elle kurulmalıdır. Bu sürüm kurulduktan sonra sonraki sürümler `Help > Check for Updates...` ve arka plan güncelleme akışıyla alınabilir.
+
 Doğrudan Gulp kullanmak isterseniz `TAXCODE_BUILD_PROFILE` ortam değişkenini `plugins`, `no-extensions` veya `low-memory` yapıp `vscode-win32-x64-min` görevini çalıştırın. Ortam değişkeni verilmezse `plugins` profili seçilir.
 
 ## Ana Logoyu Değiştirme

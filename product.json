@@ -1,6 +1,7 @@
 {
 	"nameShort": "TaxCode",
 	"nameLong": "TaxCode",
+	"quality": "stable",
 	"applicationName": "taxcode",
 	"dataFolderName": ".taxcode",
 	"sharedDataFolderName": ".taxcode-shared",
@@ -32,6 +33,8 @@
 	"linuxIconName": "taxcode",
 	"licenseFileName": "LICENSE.txt",
 	"reportIssueUrl": "https://github.com/microsoft/vscode/issues/new",
+	"updateUrl": "https://github.com/Taxperia/TaxCode/releases/latest/download/taxcode-update.json",
+	"taxCodeUpdateManifestUrl": "https://github.com/Taxperia/TaxCode/releases/latest/download/taxcode-update.json",
 	"nodejsArtifactFeed": "",
 	"electronArtifactFeed": "",
 	"urlProtocol": "taxcode",

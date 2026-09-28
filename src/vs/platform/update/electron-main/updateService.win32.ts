@@ -10,7 +10,7 @@ import { mkdir, readFile, unlink } from 'fs/promises';
 import { release, tmpdir } from 'os';
 import { Delayer, ProcessTimeRunOnceScheduler, timeout } from '../../../base/common/async.js';
 import { VSBuffer } from '../../../base/common/buffer.js';
-import { CancellationTokenSource } from '../../../base/common/cancellation.js';
+import { CancellationToken, CancellationTokenSource } from '../../../base/common/cancellation.js';
 import { memoize } from '../../../base/common/decorators.js';
 import { isCancellationError } from '../../../base/common/errors.js';
 import { hash } from '../../../base/common/hash.js';
@@ -22,6 +22,7 @@ import { checksum } from '../../../base/node/crypto.js';
 import * as pfs from '../../../base/node/pfs.js';
 import { killTree } from '../../../base/node/processes.js';
 import { getWindowsRelease } from '../../../base/node/windowsVersion.js';
+import { IRequestContext } from '../../../base/parts/request/common/request.js';
 import { IConfigurationService } from '../../configuration/common/configuration.js';
 import { IEnvironmentMainService } from '../../environment/electron-main/environmentMainService.js';
 import { IFileService } from '../../files/common/files.js';
@@ -34,6 +35,7 @@ import { asJson, IRequestService } from '../../request/common/request.js';
 import { IApplicationStorageMainService } from '../../storage/electron-main/storageMainService.js';
 import { ITelemetryService } from '../../telemetry/common/telemetry.js';
 import { AvailableForDownload, DisablementReason, IUpdate, State, StateType, UpdateType } from '../common/update.js';
+import { getTaxCodeUpdateFromManifest, ITaxCodeUpdateManifest } from '../common/taxCodeUpdate.js';
 import { AbstractUpdateService, createUpdateURL, getUpdateRequestHeaders, IUpdateURLOptions, UpdateErrorClassification } from './abstractUpdateService.js';
 import { getRelaunchArguments } from './updateRelaunchArguments.js';
 import { getWin32UpdateType } from './win32UpdateType.js';
@@ -206,6 +208,10 @@ export class Win32UpdateService extends AbstractUpdateService implements IRelaun
 	}
 
 	protected buildUpdateFeedUrl(quality: string, commit: string, options?: IUpdateURLOptions): string | undefined {
+		if (this.productService.taxCodeUpdateManifestUrl) {
+			return this.productService.taxCodeUpdateManifestUrl;
+		}
+
 		let platform = `win32-${process.arch}`;
 
 		if (this.getUpdateType() === UpdateType.Archive) {
@@ -215,6 +221,16 @@ export class Win32UpdateService extends AbstractUpdateService implements IRelaun
 		}
 
 		return createUpdateURL(this.productService.updateUrl!, platform, quality, commit, options);
+	}
+
+	private async readUpdateResponse(context: IRequestContext, pendingRelease?: string): Promise<IUpdate | null> {
+		if (!this.productService.taxCodeUpdateManifestUrl) {
+			return asJson<IUpdate>(context);
+		}
+
+		const manifest = await asJson<ITaxCodeUpdateManifest>(context);
+		const update = getTaxCodeUpdateFromManifest(manifest, this.productService.taxCodeProfile, this.productService.version);
+		return update?.version === pendingRelease ? null : update;
 	}
 
 	protected doCheckForUpdates(explicit: boolean, pendingCommit?: string): void {
@@ -237,8 +253,13 @@ export class Win32UpdateService extends AbstractUpdateService implements IRelaun
 		const token = cts.token;
 
 		const headers = getUpdateRequestHeaders(this.productService.version);
-		const promise = this.requestService.request({ url, headers, callSite: 'updateService.win32.checkForUpdates' }, token)
-			.then<IUpdate | null>(asJson)
+		const promise = this.requestService.request({
+			url,
+			headers,
+			disableCache: Boolean(this.productService.taxCodeUpdateManifestUrl),
+			callSite: 'updateService.win32.checkForUpdates'
+		}, token)
+			.then<IUpdate | null>(context => this.readUpdateResponse(context, pendingCommit))
 			.then(update => {
 				const updateType = this.getUpdateType();
 
@@ -365,6 +386,35 @@ export class Win32UpdateService extends AbstractUpdateService implements IRelaun
 			}
 			cts.dispose();
 		});
+	}
+
+	protected override async doIsLatestVersion(commit?: string, token: CancellationToken = CancellationToken.None): Promise<boolean | undefined> {
+		if (!this.productService.taxCodeUpdateManifestUrl) {
+			return super.doIsLatestVersion(commit, token);
+		}
+
+		if (!this.quality) {
+			return undefined;
+		}
+
+		const url = this.buildUpdateFeedUrl(this.quality, commit ?? this.productService.commit!);
+		if (!url) {
+			return undefined;
+		}
+
+		try {
+			const context = await this.requestService.request({
+				url,
+				headers: getUpdateRequestHeaders(this.productService.version),
+				disableCache: true,
+				callSite: 'updateService.win32.isLatestTaxCodeVersion'
+			}, token);
+			const update = await this.readUpdateResponse(context);
+			return !update || update.version === commit;
+		} catch (error) {
+			this.logService.error('update#doIsLatestVersion - failed to read the TaxCode update manifest', error);
+			return undefined;
+		}
 	}
 
 	protected override async doDownloadUpdate(state: AvailableForDownload): Promise<void> {

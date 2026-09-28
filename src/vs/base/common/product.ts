@@ -106,6 +106,7 @@ export interface IProductConfiguration {
 	readonly taxCodeLowMemoryMode?: boolean;
 	readonly taxCodeDefaultMaxOldSpaceSize?: number;
 	readonly taxCodeDisableHardwareAcceleration?: boolean;
+	readonly taxCodeUpdateManifestUrl?: string;
 
 	readonly nameShort: string;
 	readonly nameLong: string;

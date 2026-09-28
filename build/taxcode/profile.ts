@@ -24,6 +24,9 @@ export interface ITaxCodeBuildProfile {
 }
 
 const commonProduct = {
+	quality: 'stable',
+	updateUrl: 'https://github.com/Taxperia/TaxCode/releases/latest/download/taxcode-update.json',
+	taxCodeUpdateManifestUrl: 'https://github.com/Taxperia/TaxCode/releases/latest/download/taxcode-update.json',
 	enableTelemetry: false,
 	removeTelemetryMachineId: true,
 	showTelemetryOptOut: false,
