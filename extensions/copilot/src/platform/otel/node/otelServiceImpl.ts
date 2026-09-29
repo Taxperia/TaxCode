@@ -150,7 +150,8 @@ export class NodeOTelService implements IOTelService {
 			this._otelApi = api;
 
 			// Log provider — pass processors in constructor (SDK v2 uses 'processors' key)
-			this._logProcessor = new BLRP(logExporter, {
+			this._logProcessor = new BLRP({
+				exporter: logExporter,
 				scheduledDelayMillis: 1000,
 				maxExportBatchSize: 512,
 			});

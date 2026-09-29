@@ -47,7 +47,7 @@
     "ansi-colors": "^3.2.3",
     "byline": "^5.0.0",
     "debug": "^4.3.2",
-    "esbuild": "0.27.2",
+    "esbuild": "0.28.1",
     "gulp-merge-json": "^2.1.1",
     "gulp-sort": "^2.0.0",
     "jsonc-parser": "^2.3.0",
@@ -82,7 +82,7 @@
   },
   "allowScripts": {
     "@vscode/vsce-sign@2.1.0": true,
-    "esbuild@0.27.2": true,
+    "esbuild@0.28.1": true,
     "fsevents@2.3.3": true,
     "keytar@7.9.0": true,
     "tree-sitter@0.22.4": true,
