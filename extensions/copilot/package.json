@@ -7064,7 +7064,7 @@
     "zod": "3.25.76"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.91.1",
+    "@anthropic-ai/sdk": "^0.129.0",
     "@github/blackbird-external-ingest-utils": "^0.3.0",
     "@github/copilot": "^1.0.73",
     "@google/genai": "1.30.0",
@@ -7106,7 +7106,7 @@
     "lru-cache": "^11.1.0",
     "markdown-it": "^14.2.0",
     "minimatch": "^10.2.1",
-    "undici": "^7.30.0",
+    "undici": "^8.11.2",
     "vscode-tas-client": "^0.3.3",
     "web-tree-sitter": "^0.23.0"
   },
