@@ -25,6 +25,10 @@ export interface INodeCompileCachePaths {
 }
 
 export function shouldGenerateNodeCompileCache(platform: string, arch: string, product: INodeCompileCacheProduct): boolean {
+	if (process.env['TAXCODE_BUILD_WITHOUT_NODE_COMPILE_CACHE'] === '1') {
+		return false;
+	}
+
 	if (!product.quality) {
 		return false;
 	}

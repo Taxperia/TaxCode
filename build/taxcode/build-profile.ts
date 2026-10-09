@@ -18,6 +18,8 @@ function runGulpTask(profile: TaxCodeBuildProfileName, task: string): void {
 		env: {
 			...process.env,
 			TAXCODE_BUILD_PROFILE: profile,
+			TAXCODE_BUILD_WITHOUT_SOURCEMAPS: '1',
+			TAXCODE_BUILD_WITHOUT_NODE_COMPILE_CACHE: '1',
 			VSCODE_QUALITY: process.env['VSCODE_QUALITY'] ?? 'stable',
 			BUILD_SOURCEVERSION: process.env['BUILD_SOURCEVERSION'] ?? packageConfiguration.distro,
 		},

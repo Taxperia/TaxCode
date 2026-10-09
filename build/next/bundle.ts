@@ -10,14 +10,16 @@ const fileHeader = `/*!--------------------------------------------------------
  *--------------------------------------------------------*/`;
 
 export function getBundleOptions(minify: boolean, platform: 'neutral' | 'node'): esbuild.BuildOptions {
+	const generateSourceMaps = process.env['TAXCODE_BUILD_WITHOUT_SOURCEMAPS'] !== '1';
+
 	return {
 		bundle: true,
 		format: 'esm',
 		platform,
 		target: ['es2024'],
 		packages: 'external',
-		sourcemap: 'linked',
-		sourcesContent: true,
+		sourcemap: generateSourceMaps ? 'linked' : false,
+		sourcesContent: generateSourceMaps,
 		minify,
 		treeShaking: true,
 		// esbuild emits and scopes the helpers needed by each input. Keep executable

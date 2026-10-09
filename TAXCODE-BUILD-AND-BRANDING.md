@@ -33,6 +33,8 @@ npm.cmd run taxcode:build:low-memory
 npm.cmd run taxcode:build:all
 ```
 
+TaxCode profil komutları, Windows paketlerinde kullanılmayan kaynak haritalarını üretmez. Bu seçenek `TAXCODE_BUILD_WITHOUT_SOURCEMAPS=1` olarak yalnızca profil derleme alt sürecine aktarılır; normal VS Code geliştirme derlemelerinin kaynak haritalarını değiştirmez ve düşük disk/RAM ortamında paketlemenin tamamlanabilmesini sağlar. Aynı alt süreçte `TAXCODE_BUILD_WITHOUT_NODE_COMPILE_CACHE=1` kullanılır; böylece extensionsiz profil, başlatılamayan extension-host hazırlık işaretini beklemez. Bu isteğe bağlı performans önbelleğinin atlanması uygulamanın çalışmasını etkilemez.
+
 Kullanıcı kurulum dosyası da üretmek için karşılık gelen `setup` komutlarını kullanın:
 
 ```powershell
