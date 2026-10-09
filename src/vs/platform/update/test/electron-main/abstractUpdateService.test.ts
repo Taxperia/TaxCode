@@ -10,7 +10,7 @@ import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { IConfigurationChangeEvent, IConfigurationOverrides, IConfigurationValue } from '../../../configuration/common/configuration.js';
+import { ConfigurationTarget, IConfigurationChangeEvent, IConfigurationOverrides, IConfigurationUpdateOptions, IConfigurationUpdateOverrides, IConfigurationValue } from '../../../configuration/common/configuration.js';
 import { TestConfigurationService } from '../../../configuration/test/common/testConfigurationService.js';
 import { IEnvironmentMainService } from '../../../environment/electron-main/environmentMainService.js';
 import { ILifecycleMainService } from '../../../lifecycle/electron-main/lifecycleMainService.js';
@@ -122,6 +122,13 @@ suite('AbstractUpdateService', () => {
 
 	class PolicyTestConfigurationService extends TestConfigurationService {
 		policyValue: string | undefined;
+		readonly updates: { key: string; value: unknown; target: ConfigurationTarget | undefined }[] = [];
+
+		override updateValue(key: string, value: unknown, targetOrOverrides?: ConfigurationTarget | IConfigurationOverrides | IConfigurationUpdateOverrides, target?: ConfigurationTarget, _options?: IConfigurationUpdateOptions): Promise<void> {
+			const effectiveTarget = typeof targetOrOverrides === 'number' ? targetOrOverrides : target;
+			this.updates.push({ key, value, target: effectiveTarget });
+			return this.setUserConfiguration(key, value);
+		}
 
 		override getValue<T>(arg1?: string | IConfigurationOverrides, arg2?: IConfigurationOverrides): T | undefined {
 			// Mirror the real configuration service: a policy value overrides the user setting.
@@ -144,9 +151,10 @@ suite('AbstractUpdateService', () => {
 	let requestCount: number;
 	let meteredConnectionService: TestMeteredConnectionService;
 
-	function createService(mode: string, options?: { isBuilt?: boolean; disableUpdates?: boolean; updateUrl?: string; isConnectionMetered?: boolean; meteredConnectionInitialization?: Promise<void>; postInitializeGate?: Promise<void>; supportsUpdateOverwrite?: boolean }): TestUpdateService {
+	function createService(mode: string, options?: { isBuilt?: boolean; disableUpdates?: boolean; updateUrl?: string; taxCodeUpdateManifestUrl?: string; taxCodeUpdateModeMigrated?: boolean; policyValue?: string; isConnectionMetered?: boolean; meteredConnectionInitialization?: Promise<void>; postInitializeGate?: Promise<void>; supportsUpdateOverwrite?: boolean }): TestUpdateService {
 		configurationService = new PolicyTestConfigurationService();
 		configurationService.setUserConfiguration('update.mode', mode);
+		configurationService.policyValue = options?.policyValue;
 		requestCount = 0;
 
 		const lifecycleMainService = {
@@ -170,16 +178,21 @@ suite('AbstractUpdateService', () => {
 
 		const productService = {
 			updateUrl: options?.updateUrl ?? 'https://update.example',
+			taxCodeUpdateManifestUrl: options?.taxCodeUpdateManifestUrl,
 			commit: 'abc123',
 			quality: 'stable',
 			version: '1.0.0',
 			target: 'user'
 		} as unknown as IProductService;
 
+		const applicationStorage = new Map<string, unknown>();
+		if (options?.taxCodeUpdateModeMigrated) {
+			applicationStorage.set('taxcode/updateModeMigration/1', true);
+		}
 		const applicationStorageMainService = {
 			whenReady: Promise.resolve(),
-			get: () => undefined,
-			store: () => { }
+			get: (key: string) => applicationStorage.get(key),
+			store: (key: string, value: unknown) => applicationStorage.set(key, value)
 		} as unknown as IApplicationStorageMainService;
 
 		meteredConnectionService = store.add(new TestMeteredConnectionService(options?.isConnectionMetered ?? false, options?.meteredConnectionInitialization));
@@ -233,6 +246,31 @@ suite('AbstractUpdateService', () => {
 		await service.whenInitialized;
 
 		assert.strictEqual(service.state.type, StateType.Idle);
+	});
+
+	test('TaxCode migrates a legacy disabled update mode once', async () => {
+		const service = createService('none', { taxCodeUpdateManifestUrl: 'https://update.example/taxcode-update.json' });
+		await service.whenInitialized;
+
+		assert.strictEqual(configurationService.getValue('update.mode'), 'default');
+		assert.deepStrictEqual(configurationService.updates, [{ key: 'update.mode', value: 'default', target: ConfigurationTarget.USER }]);
+		assert.strictEqual(service.state.type, StateType.Idle);
+	});
+
+	test('TaxCode respects update mode choices made after migration', async () => {
+		const service = createService('none', { taxCodeUpdateManifestUrl: 'https://update.example/taxcode-update.json', taxCodeUpdateModeMigrated: true });
+		await service.whenInitialized;
+
+		assert.deepStrictEqual(configurationService.updates, []);
+		assert.deepStrictEqual(service.state, { type: StateType.Disabled, reason: DisablementReason.ManuallyDisabled });
+	});
+
+	test('TaxCode does not override update policy during migration', async () => {
+		const service = createService('none', { taxCodeUpdateManifestUrl: 'https://update.example/taxcode-update.json', policyValue: 'none' });
+		await service.whenInitialized;
+
+		assert.deepStrictEqual(configurationService.updates, []);
+		assert.deepStrictEqual(service.state, { type: StateType.Disabled, reason: DisablementReason.Policy });
 	});
 
 	test('policy forces updates off even when the user setting keeps them enabled', async () => {

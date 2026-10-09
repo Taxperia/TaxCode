@@ -31,6 +31,8 @@ export function ensureTaxCodeWindowsBrandAssets(repoRoot: string): string {
 		sourceIcon,
 		'-OutputDirectory',
 		outputDirectory,
+		'-InstallerResourcesDirectory',
+		path.join(repoRoot, 'resources', 'win32'),
 	], { stdio: 'inherit' });
 
 	return outputDirectory;

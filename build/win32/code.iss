@@ -8,10 +8,10 @@
 AppId={#AppId}
 AppName={#NameLong}
 AppVerName={#NameVersion}
-AppPublisher=Microsoft Corporation
-AppPublisherURL=https://code.visualstudio.com/
-AppSupportURL=https://code.visualstudio.com/
-AppUpdatesURL=https://code.visualstudio.com/
+AppPublisher=Taxperia
+AppPublisherURL=https://github.com/Taxperia
+AppSupportURL=https://github.com/Taxperia/TaxCode/issues
+AppUpdatesURL=https://github.com/Taxperia/TaxCode/releases/latest
 DefaultGroupName={#NameLong}
 AllowNoIcons=yes
 OutputDir={#OutputDir}
@@ -20,8 +20,8 @@ Compression=lzma
 SolidCompression=yes
 AppMutex={code:GetAppMutex}
 SetupMutex={code:GetSetupMutex}
-WizardImageFile="{#RepoDir}\resources\win32\inno-big-100.bmp,{#RepoDir}\resources\win32\inno-big-125.bmp,{#RepoDir}\resources\win32\inno-big-150.bmp,{#RepoDir}\resources\win32\inno-big-175.bmp,{#RepoDir}\resources\win32\inno-big-200.bmp,{#RepoDir}\resources\win32\inno-big-225.bmp,{#RepoDir}\resources\win32\inno-big-250.bmp"
-WizardSmallImageFile="{#RepoDir}\resources\win32\inno-small-100.bmp,{#RepoDir}\resources\win32\inno-small-125.bmp,{#RepoDir}\resources\win32\inno-small-150.bmp,{#RepoDir}\resources\win32\inno-small-175.bmp,{#RepoDir}\resources\win32\inno-small-200.bmp,{#RepoDir}\resources\win32\inno-small-225.bmp,{#RepoDir}\resources\win32\inno-small-250.bmp"
+WizardImageFile="{#RepoDir}\.build\taxcode\win32\inno-big-100.bmp,{#RepoDir}\.build\taxcode\win32\inno-big-125.bmp,{#RepoDir}\.build\taxcode\win32\inno-big-150.bmp,{#RepoDir}\.build\taxcode\win32\inno-big-175.bmp,{#RepoDir}\.build\taxcode\win32\inno-big-200.bmp,{#RepoDir}\.build\taxcode\win32\inno-big-225.bmp,{#RepoDir}\.build\taxcode\win32\inno-big-250.bmp"
+WizardSmallImageFile="{#RepoDir}\.build\taxcode\win32\inno-small-100.bmp,{#RepoDir}\.build\taxcode\win32\inno-small-125.bmp,{#RepoDir}\.build\taxcode\win32\inno-small-150.bmp,{#RepoDir}\.build\taxcode\win32\inno-small-175.bmp,{#RepoDir}\.build\taxcode\win32\inno-small-200.bmp,{#RepoDir}\.build\taxcode\win32\inno-small-225.bmp,{#RepoDir}\.build\taxcode\win32\inno-small-250.bmp"
 SetupIconFile={#RepoDir}\taxcode.ico
 UninstallDisplayIcon={app}\{#ExeBasename}.exe
 ChangesEnvironment=true
@@ -34,6 +34,7 @@ ShowLanguageDialog=auto
 ArchitecturesAllowed={#ArchitecturesAllowed}
 ArchitecturesInstallIn64BitMode={#ArchitecturesInstallIn64BitMode}
 WizardStyle=modern
+WizardResizable=no
 
 // We've seen an uptick on broken installations from updates which were unable
 // to shutdown VS Code. We rely on the fact that the update signals

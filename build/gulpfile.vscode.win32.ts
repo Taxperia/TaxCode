@@ -15,6 +15,7 @@ import { getVersion } from './lib/getVersion.ts';
 import * as task from './lib/gulp/task.ts';
 import * as util from './lib/util.ts';
 import { applyTaxCodeBuildProfile, getTaxCodeBuildFolderName, getTaxCodeBuildProfile } from './taxcode/profile.ts';
+import { ensureTaxCodeWindowsBrandAssets } from './taxcode/branding.ts';
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -73,6 +74,7 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 		const sourcePath = buildPath(arch);
 		const outputPath = setupDir(arch, target);
 		fs.mkdirSync(outputPath, { recursive: true });
+		ensureTaxCodeWindowsBrandAssets(repoPath);
 
 		const quality = (product as typeof product & { quality?: string }).quality || 'dev';
 		const useVersionedUpdate = (product as typeof product & { win32VersionedUpdate?: boolean })?.win32VersionedUpdate;

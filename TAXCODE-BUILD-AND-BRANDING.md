@@ -63,6 +63,10 @@ Release etiketi `taxcode-v<sürüm>` biçiminde olmalıdır; örneğin `taxcode-
 
 Bu güncelleyici kodunu içermeyen eski TaxCode sürümleri ilk kez elle kurulmalıdır. Bu sürüm kurulduktan sonra sonraki sürümler `Help > Check for Updates...` ve arka plan güncelleme akışıyla alınabilir.
 
+TaxCode 1.141.0, eski kurulumların kullanıcı ayarlarında bıraktığı `"update.mode": "none"` değerini ilk açılışta bir kez `default` değerine taşır. Böylece `Help > Check for Updates...` yeniden görünür ve arka plan denetimi çalışır. Bu tek seferlik geçişten sonra kullanıcının güncelleme modunda yaptığı değişiklikler korunur; yönetim ilkesiyle kapatılmış güncellemeler değiştirilmez.
+
+> Önemli: GitHub Release yalnızca kaynak kodu içeriyorsa otomatik güncelleme çalışmaz. `taxcode-update.json` ve üç profilin kurulum EXE dosyaları aynı **en güncel yayımlanmış release** içinde bulunmalıdır. Manifest URL'sinin 404 dönmesi durumunda uygulama yeni sürümü göremez.
+
 Doğrudan Gulp kullanmak isterseniz `TAXCODE_BUILD_PROFILE` ortam değişkenini `plugins`, `no-extensions` veya `low-memory` yapıp `vscode-win32-x64-min` görevini çalıştırın. Ortam değişkeni verilmezse `plugins` profili seçilir.
 
 ## Ana Logoyu Değiştirme
@@ -73,7 +77,7 @@ Windows markasının tek kaynak dosyası kökteki `taxcode.ico` dosyasıdır. Ej
 taxcode.ico
 ```
 
-Önerilen ICO katmanları: 16, 24, 32, 48, 64, 128 ve 256 piksel; şeffaf arka plan kullanın. Derleme sırasında 70x70 ve 150x150 Windows karo görselleri bu ICO'dan otomatik üretilir. Üretilen geçici dosyalar `.build/taxcode/win32` altındadır; elle düzenlenmemelidir.
+Önerilen ICO katmanları: 16, 24, 32, 48, 64, 128 ve 256 piksel; şeffaf arka plan kullanın. Derleme sırasında 70x70 ve 150x150 Windows karo görsellerinin yanında Inno Setup'ın bütün DPI boyutlarındaki büyük/küçük kurulum görselleri de bu ICO'dan otomatik üretilir. Üretilen geçici dosyalar `.build/taxcode/win32` altındadır; elle düzenlenmemelidir.
 
 Windows logosunu kullanan noktalar:
 
@@ -84,11 +88,13 @@ Windows logosunu kullanan noktalar:
 | `build/win32/code.iss` | Windows kurulum dosyasının ikonu |
 | `build/gulpfile.vscode.win32.ts` | Güncelleyici EXE ikonu |
 | `build/gulpfile.vscode.ts` | Paket içindeki `resources/win32/code.ico` ve karo görselleri |
-| `build/taxcode/generate-brand-assets.ps1` | 70x70 ve 150x150 PNG üretimi |
+| `build/taxcode/generate-brand-assets.ps1` | Karo PNG'leri ve Inno Setup ejderha BMP'lerinin üretimi |
 | `resources/win32/VisualElementsManifest.xml` | Başlat menüsü karo yolları ve ürün adı |
 | `src/vs/platform/windows/electron-main/windows.ts` | Kaynaktan çalıştırılan geliştirme penceresinin ikonu |
 
 `resources/win32/code.ico`, `code_70x70.png` ve `code_150x150.png` eski Code OSS varlıkları olarak kaynakta durabilir; TaxCode Windows paketleme akışı bunların yerine `taxcode.ico` ve ondan üretilen görselleri koyar.
+
+Kurulum penceresindeki yayımlayıcı/destek/güncelleme bağlantıları ile yeniden boyutlandırma davranışı da `build/win32/code.iss` içindedir. TaxCode kurulumu yeniden boyutlandırılamaz; bu nedenle başlık çubuğundaki büyütme düğmesi gösterilmez. Kapatma düğmesi standart Windows davranışı olarak korunur.
 
 ## Diğer Platformların Logo Noktaları
 

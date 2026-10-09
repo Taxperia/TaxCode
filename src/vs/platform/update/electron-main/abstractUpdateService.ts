@@ -12,7 +12,7 @@ import { Disposable, IDisposable, MutableDisposable, toDisposable } from '../../
 import { isMacintosh, isWindows } from '../../../base/common/platform.js';
 import { getWindowsReleaseSync } from '../../../base/node/windowsVersion.js';
 import { IMeteredConnectionService } from '../../meteredConnection/common/meteredConnection.js';
-import { IConfigurationService } from '../../configuration/common/configuration.js';
+import { ConfigurationTarget, IConfigurationService } from '../../configuration/common/configuration.js';
 import { IEnvironmentMainService } from '../../environment/electron-main/environmentMainService.js';
 import { ILifecycleMainService, LifecycleMainPhase } from '../../lifecycle/electron-main/lifecycleMainService.js';
 import { ILogService } from '../../log/common/log.js';
@@ -24,6 +24,7 @@ import { ITelemetryService } from '../../telemetry/common/telemetry.js';
 import { AvailableForDownload, DisablementReason, IUpdate, IUpdateService, State, StateType, UpdateType } from '../common/update.js';
 
 const LAST_KNOWN_VERSION_STORAGE_KEY = 'abstractUpdateService/lastKnownVersion';
+const TAXCODE_UPDATE_MODE_MIGRATION_STORAGE_KEY = 'taxcode/updateModeMigration/1';
 
 export interface IUpdateURLOptions {
 	readonly background?: boolean;
@@ -210,6 +211,7 @@ export abstract class AbstractUpdateService extends Disposable implements IUpdat
 		}
 
 		await this.meteredConnectionService.whenConnectionStateInitialized;
+		await this.migrateTaxCodeUpdateMode();
 
 		// React to runtime `update.mode`/policy changes so switching to/from `none` applies without a restart.
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
@@ -220,6 +222,32 @@ export abstract class AbstractUpdateService extends Disposable implements IUpdat
 
 		// Apply the currently configured update mode.
 		await this.reconfigure();
+	}
+
+	/**
+	 * Early TaxCode builds persisted `update.mode: none`, which also removes the manual update
+	 * command from the UI. Migrate that legacy preference once. The marker is written for every
+	 * TaxCode user so choosing `none` after this migration remains a respected user preference.
+	 */
+	private async migrateTaxCodeUpdateMode(): Promise<void> {
+		if (!this.productService.taxCodeUpdateManifestUrl || this.applicationStorageMainService.get(TAXCODE_UPDATE_MODE_MIGRATION_STORAGE_KEY, StorageScope.APPLICATION)) {
+			return;
+		}
+
+		const updateMode = this.configurationService.getValue<'none' | 'manual' | 'start' | 'default'>('update.mode');
+		const updateModeInspection = this.configurationService.inspect<'none' | 'manual' | 'start' | 'default'>('update.mode');
+
+		if (updateMode === 'none' && updateModeInspection.policyValue === undefined) {
+			try {
+				await this.configurationService.updateValue('update.mode', 'default', ConfigurationTarget.USER);
+				this.logService.info('update#migrateTaxCodeUpdateMode - restored automatic updates for a legacy TaxCode profile');
+			} catch (err) {
+				this.logService.warn('update#migrateTaxCodeUpdateMode - failed to migrate the legacy update mode', err);
+				return;
+			}
+		}
+
+		this.applicationStorageMainService.store(TAXCODE_UPDATE_MODE_MIGRATION_STORAGE_KEY, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
 	}
 
 	/**
