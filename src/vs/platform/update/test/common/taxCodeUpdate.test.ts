@@ -12,7 +12,7 @@ suite('TaxCodeUpdateManifest', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
 	const sha256 = 'a'.repeat(64);
-	const createManifest = (version = '1.139.3'): ITaxCodeUpdateManifest => ({
+	const createManifest = (version = '1.141.1'): ITaxCodeUpdateManifest => ({
 		schemaVersion: 1,
 		version,
 		release: `taxcode-v${version}`,
@@ -35,10 +35,10 @@ suite('TaxCodeUpdateManifest', () => {
 
 	for (const profile of ['plugins', 'no-extensions', 'low-memory'] as const) {
 		test(`selects the ${profile} installer`, () => {
-			const update = getTaxCodeUpdateFromManifest(createManifest(), profile, '1.139.2');
+			const update = getTaxCodeUpdateFromManifest(createManifest(), profile, '1.141.0');
 			assert.deepStrictEqual(update, {
-				version: 'taxcode-v1.139.3',
-				productVersion: '1.139.3',
+				version: 'taxcode-v1.141.1',
+				productVersion: '1.141.1',
 				timestamp: Date.parse('2026-09-28T00:00:00.000Z'),
 				url: createManifest().profiles[profile]?.url,
 				sha256hash: sha256,
@@ -48,8 +48,8 @@ suite('TaxCodeUpdateManifest', () => {
 
 	test('ignores the installed or an older release', () => {
 		assert.deepStrictEqual([
-			getTaxCodeUpdateFromManifest(createManifest('1.139.2'), 'plugins', '1.139.2'),
-			getTaxCodeUpdateFromManifest(createManifest('1.139.1'), 'plugins', '1.139.2'),
+			getTaxCodeUpdateFromManifest(createManifest('1.141.0'), 'plugins', '1.141.0'),
+			getTaxCodeUpdateFromManifest(createManifest('1.140.0'), 'plugins', '1.141.0'),
 		], [null, null]);
 	});
 
@@ -62,23 +62,23 @@ suite('TaxCodeUpdateManifest', () => {
 				plugins: { url: 'https://example.com/TaxCode.exe', sha256 },
 			},
 		};
-		assert.throws(() => getTaxCodeUpdateFromManifest(manifest, 'plugins', '1.139.2'), /Invalid TaxCode update asset/);
+		assert.throws(() => getTaxCodeUpdateFromManifest(manifest, 'plugins', '1.141.0'), /Invalid TaxCode update asset/);
 	});
 
 	test('rejects missing profiles and invalid hashes', () => {
 		const original = createManifest();
-		assert.throws(() => getTaxCodeUpdateFromManifest({ ...original, profiles: {} }, 'plugins', '1.139.2'), /Invalid TaxCode update asset/);
+		assert.throws(() => getTaxCodeUpdateFromManifest({ ...original, profiles: {} }, 'plugins', '1.141.0'), /Invalid TaxCode update asset/);
 		assert.throws(() => getTaxCodeUpdateFromManifest({
 			...original,
 			profiles: { plugins: { url: original.profiles.plugins!.url, sha256: 'bad' } },
-		}, 'plugins', '1.139.2'), /Invalid TaxCode update asset/);
+		}, 'plugins', '1.141.0'), /Invalid TaxCode update asset/);
 	});
 
 	test('rejects invalid versions, releases, timestamps, and profiles', () => {
 		const original = createManifest();
-		assert.throws(() => getTaxCodeUpdateFromManifest({ ...original, version: 'latest' }, 'plugins', '1.139.2'), /Invalid TaxCode update version/);
-		assert.throws(() => getTaxCodeUpdateFromManifest({ ...original, release: 'latest' }, 'plugins', '1.139.2'), /Invalid TaxCode update version/);
-		assert.throws(() => getTaxCodeUpdateFromManifest({ ...original, publishedAt: 'invalid' }, 'plugins', '1.139.2'), /Invalid TaxCode update timestamp/);
-		assert.throws(() => getTaxCodeUpdateFromManifest(original, 'missing' as TaxCodeUpdateProfile, '1.139.2'), /Invalid TaxCode update asset/);
+		assert.throws(() => getTaxCodeUpdateFromManifest({ ...original, version: 'latest' }, 'plugins', '1.141.0'), /Invalid TaxCode update version/);
+		assert.throws(() => getTaxCodeUpdateFromManifest({ ...original, release: 'latest' }, 'plugins', '1.141.0'), /Invalid TaxCode update version/);
+		assert.throws(() => getTaxCodeUpdateFromManifest({ ...original, publishedAt: 'invalid' }, 'plugins', '1.141.0'), /Invalid TaxCode update timestamp/);
+		assert.throws(() => getTaxCodeUpdateFromManifest(original, 'missing' as TaxCodeUpdateProfile, '1.141.0'), /Invalid TaxCode update asset/);
 	});
 });

@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { IUpdate } from './update.js';
+import type { IUpdate } from './update.js';
 
 export type TaxCodeUpdateProfile = 'plugins' | 'no-extensions' | 'low-memory';
 

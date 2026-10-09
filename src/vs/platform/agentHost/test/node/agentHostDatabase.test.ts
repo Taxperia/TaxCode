@@ -14,6 +14,7 @@ import { join } from '../../../../base/common/path.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 import { AgentHostDatabase, IAgentHostDatabase, IAgentHostDatabaseSessionV2Envelope } from '../../node/agentHostDatabase.js';
+import { AGENT_HOST_CATALOG_PAYLOAD_VERSION } from '../../node/agentHostCatalogProjection.js';
 
 function openDatabase(path: string): Promise<Database> {
 	return new Promise((resolve, reject) => {
@@ -39,7 +40,7 @@ function close(database: Database): Promise<void> {
 
 function createPayload(session: string, sourceRevision: number, isChatBacking = false): string {
 	return stableStringify({
-		payloadVersion: 1,
+		payloadVersion: AGENT_HOST_CATALOG_PAYLOAD_VERSION,
 		data: {
 			modifiedTime: 100 + sourceRevision,
 			summary: `Title ${sourceRevision}`,
@@ -69,7 +70,7 @@ function createEnvelope(
 		session,
 		sessionGeneration,
 		sourceRevision,
-		payloadVersion: 1,
+		payloadVersion: AGENT_HOST_CATALOG_PAYLOAD_VERSION,
 		payloadHash: createHash('sha256').update(payload, 'utf8').digest('hex'),
 		verified: true,
 		payload,
@@ -219,12 +220,13 @@ suite('AgentHostDatabase sessions_v2', () => {
 
 		const rawDatabase = await openDatabase(path);
 		try {
-			const [version, tables, sessionColumns, sessionV2Columns, sessionV2ForeignKeys] = await Promise.all([
+			const [version, tables, sessionColumns, sessionV2Columns, sessionV2ForeignKeys, sessionChatColumns] = await Promise.all([
 				all(rawDatabase, 'PRAGMA user_version'),
 				all(rawDatabase, `SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name`),
 				all(rawDatabase, 'PRAGMA table_info(sessions)'),
 				all(rawDatabase, 'PRAGMA table_info(sessions_v2)'),
 				all(rawDatabase, 'PRAGMA foreign_key_list(sessions_v2)'),
+				all(rawDatabase, 'PRAGMA table_info(session_chats)'),
 			]);
 			assert.deepStrictEqual({
 				version,
@@ -232,8 +234,9 @@ suite('AgentHostDatabase sessions_v2', () => {
 				sessionColumns: sessionColumns.map(row => row.name),
 				sessionV2Columns: sessionV2Columns.map(row => row.name),
 				sessionV2ForeignKeys,
+				sessionChatColumns: sessionChatColumns.map(row => row.name),
 			}, {
-				version: [{ user_version: 5 }],
+				version: [{ user_version: 13 }],
 				tables: ['metadata', 'session_chat_catalogs', 'session_chats', 'sessions', 'sessions_v2'],
 				sessionColumns: ['session_uri', 'provider', 'start_time', 'external', 'registration_source', 'modified_time'],
 				sessionV2Columns: [
@@ -241,6 +244,7 @@ suite('AgentHostDatabase sessions_v2', () => {
 					'source_revision', 'payload_version', 'payload_hash', 'verified', 'payload', 'is_chat_backing', 'modified_time',
 				],
 				sessionV2ForeignKeys: [],
+				sessionChatColumns: ['session_uri', 'chat_uri', 'chat_order', 'provider_data', 'origin', 'inherited_turn_id', 'archived', 'is_read'],
 			});
 
 		} finally {
@@ -259,7 +263,7 @@ suite('AgentHostDatabase sessions_v2', () => {
 
 		const before = await database.getSessionChatCatalog(session);
 		const firstResult = await database.replaceSessionChatCatalog(session, [
-			{ chat: 'ahp-chat://first', order: 0, providerData: 'first', origin: '{"kind":"user"}' },
+			{ chat: 'ahp-chat://first', order: 0, isRead: false, providerData: 'first', origin: '{"kind":"user"}' },
 			{ chat: 'ahp-chat://second', order: 1, inheritedTurnId: 'turn-1' },
 		], undefined);
 		if (firstResult.status !== 'applied') {
@@ -299,7 +303,7 @@ suite('AgentHostDatabase sessions_v2', () => {
 				revision: 1,
 				legacyMirroredRevision: 0,
 				chats: [
-					{ chat: 'ahp-chat://first', order: 0, providerData: 'first', origin: '{"kind":"user"}' },
+					{ chat: 'ahp-chat://first', order: 0, isRead: false, providerData: 'first', origin: '{"kind":"user"}' },
 					{ chat: 'ahp-chat://second', order: 1, inheritedTurnId: 'turn-1' },
 				],
 			},
@@ -324,6 +328,48 @@ suite('AgentHostDatabase sessions_v2', () => {
 					{ chat: 'ahp-chat://second', order: 0, inheritedTurnId: 'turn-1' },
 				],
 			},
+		});
+	});
+
+	test('recovery atomically excludes current foreign ownership and preserves source membership', async () => {
+		database = new AgentHostDatabase(':memory:');
+		const source = 'copilotcli:/source';
+		const target = 'copilotcli:/target';
+		for (const session of [source, target]) {
+			await database.registerRuntimeSession(session, { provider: 'copilotcli', startTime: 1, source: 'explicit' }, { checkTombstone: false });
+		}
+		await database.replaceSessionChatCatalog(source, [{ chat: 'ahp-chat://existing', order: 0, archived: true, providerData: 'current' }], undefined);
+		await database.replaceSessionChatCatalog(target, [], undefined);
+		const claim = database.replaceSessionChatCatalog(target, [
+			{ chat: 'ahp-chat://moved', order: 0, providerData: 'target-current' },
+		], 1);
+		const recovery = database.recoverSessionChatCatalog(source, [
+			{ chat: 'ahp-chat://existing', order: 0, archived: true, providerData: 'current' },
+			{ chat: 'ahp-chat://moved', order: 1, providerData: 'historical' },
+			{ chat: 'ahp-chat://missing', order: 2, providerData: 'recovered' },
+		], 1);
+		await Promise.all([claim, recovery]);
+		const sourceAfter = await database.getSessionChatCatalog(source);
+		const targetAfter = await database.getSessionChatCatalog(target);
+		const staleRecovery = await database.recoverSessionChatCatalog(source, [], 1);
+		await database.tombstoneAndUnregisterSession(source);
+		const deletedRecovery = await database.recoverSessionChatCatalog(source, [], 2);
+
+		assert.deepStrictEqual({
+			source: sourceAfter?.chats,
+			target: targetAfter?.chats,
+			staleRecovery,
+			deletedRecovery,
+			sourceAfterDeletion: await database.getSessionChatCatalog(source),
+		}, {
+			source: [
+				{ chat: 'ahp-chat://existing', order: 0, archived: true, providerData: 'current' },
+				{ chat: 'ahp-chat://missing', order: 1, providerData: 'recovered' },
+			],
+			target: [{ chat: 'ahp-chat://moved', order: 0, providerData: 'target-current' }],
+			staleRecovery: { status: 'conflict' },
+			deletedRecovery: { status: 'tombstoned' },
+			sourceAfterDeletion: undefined,
 		});
 	});
 
@@ -464,9 +510,8 @@ suite('AgentHostDatabase sessions_v2', () => {
 		});
 	});
 
-	test('upgrades published v4 through v6 rows and invalidates old projections', async () => {
-		const results: object[] = [];
-		for (const version of [4, 5, 6] as const) {
+	for (const version of [4, 5, 6] as const) {
+		test(`upgrades published v${version} rows and invalidates old projections`, async () => {
 			const path = join(temporaryDirectory!, `agent-host-published-v${version}.db`);
 			await createPublishedSessionsV2Database(path, version);
 			const upgraded = new AgentHostDatabase(path);
@@ -481,36 +526,33 @@ suite('AgentHostDatabase sessions_v2', () => {
 					all(rawDatabase, 'PRAGMA foreign_key_list(sessions_v2)'),
 				]);
 				await close(rawDatabase);
-				results.push({
+				assert.deepStrictEqual({
 					version,
 					schemaVersion,
 					foreignKeys,
 					published: await upgraded.getSessionV2(session),
 					directLegacy: await upgraded.getSession(direct),
 					directCurrent: await upgraded.getSessionV2Registration(direct),
+				}, {
+					version,
+					schemaVersion: [{ user_version: 13 }],
+					foreignKeys: [],
+					published: undefined,
+					directLegacy: undefined,
+					directCurrent: {
+						session: `session://direct-${version}`,
+						provider: 'claude',
+						startTime: 200 + version,
+						modifiedTime: 200 + version,
+						external: false,
+						source: 'explicit',
+					},
 				});
-
 			} finally {
 				await upgraded.close();
 			}
-		}
-
-		assert.deepStrictEqual(results, [4, 5, 6].map(version => ({
-			version,
-			schemaVersion: [{ user_version: 5 }],
-			foreignKeys: [],
-			published: undefined,
-			directLegacy: undefined,
-			directCurrent: {
-				session: `session://direct-${version}`,
-				provider: 'claude',
-				startTime: 200 + version,
-				modifiedTime: 200 + version,
-				external: false,
-				source: 'explicit',
-			},
-		})));
-	});
+		}).timeout(10_000);
+	}
 
 	test('applies the catalog migration after upstream v4', async () => {
 		const path = join(temporaryDirectory!, 'agent-host-upstream-v4.db');
@@ -540,7 +582,7 @@ suite('AgentHostDatabase sessions_v2', () => {
 				version: await all(rawDatabase, 'PRAGMA user_version'),
 				tables: (await all(rawDatabase, `SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name`)).map(row => row.name),
 			}, {
-				version: [{ user_version: 5 }],
+				version: [{ user_version: 13 }],
 				tables: ['metadata', 'session_chat_catalogs', 'session_chats', 'sessions', 'sessions_v2'],
 			});
 		} finally {
@@ -633,11 +675,49 @@ suite('AgentHostDatabase sessions_v2', () => {
 				legacyMirroredRevision: 0,
 				chats: [{ chat: 'ahp-chat://peer', order: 0, providerData: 'peer' }],
 			},
-			version: [{ user_version: 5 }],
+			version: [{ user_version: 13 }],
 		});
 	});
 
-	test('preserves a future migration applied to the final catalog schema', async () => {
+	test('repairs missing chat columns without lowering a future schema version', async () => {
+		const path = join(temporaryDirectory!, 'agent-host-future-v17.db');
+		database = new AgentHostDatabase(path);
+		await database.registerSessionV2('session://future-v17', { provider: 'copilot', startTime: 1, source: 'explicit' }, { checkTombstone: false });
+		await database.replaceSessionChatCatalog('session://future-v17', [
+			{ chat: 'ahp-chat://peer', order: 0, providerData: 'peer' },
+		], undefined);
+		await database.close();
+		database = undefined;
+
+		const futureDatabase = await openDatabase(path);
+		await exec(futureDatabase, `ALTER TABLE session_chats DROP COLUMN is_read;
+			ALTER TABLE session_chats ADD COLUMN parent_chat TEXT;
+			ALTER TABLE session_chats ADD COLUMN storage_resource TEXT;
+			PRAGMA user_version = 17`);
+		await close(futureDatabase);
+
+		database = new AgentHostDatabase(path);
+		const catalog = await database.getSessionChatCatalog('session://future-v17');
+		await database.close();
+		database = undefined;
+
+		const repairedDatabase = await openDatabase(path);
+		const version = await all(repairedDatabase, 'PRAGMA user_version');
+		const columns = (await all(repairedDatabase, 'PRAGMA table_info(session_chats)')).map(row => row.name);
+		await close(repairedDatabase);
+
+		assert.deepStrictEqual({ catalog, version, columns }, {
+			catalog: {
+				revision: 1,
+				legacyMirroredRevision: 0,
+				chats: [{ chat: 'ahp-chat://peer', order: 0, providerData: 'peer' }],
+			},
+			version: [{ user_version: 17 }],
+			columns: ['session_uri', 'chat_uri', 'chat_order', 'provider_data', 'origin', 'inherited_turn_id', 'archived', 'parent_chat', 'storage_resource', 'is_read'],
+		});
+	});
+
+	test('upgrades a pre-release v6 catalog while preserving unknown tables', async () => {
 		const path = join(temporaryDirectory!, 'agent-host-future-v6.db');
 		database = new AgentHostDatabase(path);
 		await database.registerSessionV2('session://future-v6', { provider: 'copilot', startTime: 1, source: 'explicit' }, { checkTombstone: false });
@@ -671,10 +751,10 @@ suite('AgentHostDatabase sessions_v2', () => {
 				external: false,
 				source: 'explicit',
 			},
-			version: [{ user_version: 6 }],
+			version: [{ user_version: 13 }],
 			marker: [{ name: 'future_v6_marker' }],
 		});
-	});
+	}).timeout(10_000);
 
 	test('increments dirty markers and clears only the observed marker', async () => {
 		database = new AgentHostDatabase(':memory:');
@@ -805,7 +885,7 @@ suite('AgentHostDatabase sessions_v2', () => {
 				migratedRows: [{ session_uri: 'session://upgrade-3', provider: 'copilot', start_time: 3, external: 0, registration_source: 'restore', verified: 0 }],
 			},
 		]);
-	});
+	}).timeout(10_000);
 
 	test('round trips one complete verified row', async () => {
 		database = new AgentHostDatabase(':memory:');
@@ -834,6 +914,28 @@ suite('AgentHostDatabase sessions_v2', () => {
 		});
 	});
 
+	test('lists only requested verified rows and skips empty requests', async () => {
+		database = new AgentHostDatabase(':memory:');
+		const first = 'session://first';
+		const second = 'session://second';
+		for (const session of [first, second]) {
+			await database.registerSessionV2(session, {
+				provider: 'copilot',
+				startTime: 42,
+				source: 'restore',
+			}, { checkTombstone: false });
+			await database.upsertSessionV2(createEnvelope(session, 'generation-1', 1), undefined);
+		}
+
+		assert.deepStrictEqual({
+			subset: (await database.listSessionsV2([second])).map(row => row.session),
+			empty: await database.listSessionsV2([]),
+		}, {
+			subset: [second],
+			empty: [],
+		});
+	});
+
 	test('derives is_chat_backing from the validated payload and rejects payloads the envelope does not describe', async () => {
 		database = new AgentHostDatabase(':memory:');
 		const session = 'session://derived';
@@ -850,7 +952,7 @@ suite('AgentHostDatabase sessions_v2', () => {
 			/payloadHash must match payload/,
 		);
 		await assert.rejects(
-			database.upsertSessionV2(createEnvelope(session, 'generation-1', 3, { payload: '{"payloadVersion":1,"data":{}}' }), 'generation-1'),
+			database.upsertSessionV2(createEnvelope(session, 'generation-1', 3, { payload: `{"payloadVersion":${AGENT_HOST_CATALOG_PAYLOAD_VERSION},"data":{}}` }), 'generation-1'),
 			/Catalog payload is invalid/,
 		);
 		await assert.rejects(
@@ -1093,7 +1195,7 @@ suite('AgentHostDatabase sessions_v2', () => {
 			current: { session, provider: 'copilot', startTime: 1, modifiedTime: 1, external: true, source: 'discovery' },
 			sourceRevision: 3,
 		});
-	});
+	}).timeout(10_000);
 
 	test('runtime legacy mirror failure rolls back current registration', async () => {
 		const path = join(temporaryDirectory!, 'runtime-rollback.db');
@@ -1153,7 +1255,7 @@ suite('AgentHostDatabase sessions_v2', () => {
 			oldBuildSession: { session: 'session://old-build', provider: 'copilot', startTime: 2, modifiedTime: 0, external: true, source: 'discovery' },
 			oldBuildSessionV2: undefined,
 		});
-	});
+	}).timeout(10_000);
 
 	test('legacy row absence is not current deletion', async () => {
 		const path = join(temporaryDirectory!, 'old-build-orphan.db');

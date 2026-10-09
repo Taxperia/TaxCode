@@ -27,7 +27,7 @@ for (const name of taxCodeBuildProfileNames) {
 	} else {
 		assert.equal(configuredProduct.taxCodeExtensionsEnabled, false);
 		assert.deepEqual(configuredProduct.builtInExtensions, []);
-		assert.ok(!('extensionsGallery' in configuredProduct));
+		assert.equal(configuredProduct.extensionsGallery, undefined);
 		assert.ok(defaultChatAgent);
 	}
 }

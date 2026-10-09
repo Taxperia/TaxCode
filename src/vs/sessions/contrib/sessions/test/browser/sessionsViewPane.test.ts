@@ -8,21 +8,16 @@ import { mainWindow } from '../../../../../base/browser/window.js';
 import { SplitView, Sizing } from '../../../../../base/browser/ui/splitview/splitview.js';
 import { Emitter, Event } from '../../../../../base/common/event.js';
 import { DisposableStore, IDisposable, MutableDisposable } from '../../../../../base/common/lifecycle.js';
+import { IObservable, observableValue } from '../../../../../base/common/observable.js';
+import { URI } from '../../../../../base/common/uri.js';
 import { upcastPartial } from '../../../../../base/test/common/mock.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { ConfigurationTarget } from '../../../../../platform/configuration/common/configuration.js';
-import { TestConfigurationService } from '../../../../../platform/configuration/test/common/testConfigurationService.js';
-import { IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
 import { TestInstantiationService } from '../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
-import { IStorageService, StorageScope, StorageTarget } from '../../../../../platform/storage/common/storage.js';
-import { IViewDescriptorService, ViewContainerLocation } from '../../../../../workbench/common/views.js';
-import { workbenchInstantiationService } from '../../../../../workbench/test/browser/workbenchTestServices.js';
 import { Workbench } from '../../../../browser/workbench.js';
-import { ISessionsService } from '../../../../services/sessions/browser/sessionsService.js';
-import { ISessionsManagementService } from '../../../../services/sessions/common/sessionsManagement.js';
+import { ISession } from '../../../../services/sessions/common/session.js';
+import { ISessionComparison, SessionComparisonParticipantRole } from '../../../../services/sessions/common/sessionComparison.js';
 import { AICustomizationShortcutsWidget } from '../../browser/aiCustomizationShortcutsWidget.js';
-import { SessionsList, SessionsSorting } from '../../browser/views/sessionsList.js';
-import { SESSIONS_LIST_DEFAULT_SORT_ORDER_SETTING, SessionsView, SessionsViewId, SessionsViewSortingContext } from '../../browser/views/sessionsView.js';
+import { getCustomizationsPresentation, SessionsView } from '../../browser/views/sessionsView.js';
 import '../../browser/media/sessionsViewPane.css';
 
 const registerEditorTabHeightClass = Reflect.get(Workbench.prototype, 'registerEditorTabHeightClass') as (this: {
@@ -33,9 +28,126 @@ const registerEditorTabHeightClass = Reflect.get(Workbench.prototype, 'registerE
 	};
 	_register<T extends IDisposable>(disposable: T): T;
 }) => void;
+const handleSessionOpened = Reflect.get(SessionsView.prototype, '_handleSessionOpened') as (this: {
+	readonly sessionComparisonService: { getComparisonForSession(resource: URI): ISessionComparison | undefined };
+	readonly sessionsService: { readonly visibleSessions: IObservable<readonly (ISession | undefined)[]> };
+	readonly layoutService: { hideSidePane(): void; mainContainer: HTMLElement; setPartHidden(hidden: boolean, part: string): void };
+}, session: ISession) => void;
+const updateHeaderLayout = Reflect.get(SessionsView.prototype, 'updateHeaderLayout') as (this: {
+	readonly sessionsHeaders: ReadonlySet<{
+		readonly row: HTMLElement;
+		readonly label: HTMLElement;
+		readonly actions: HTMLElement;
+	}>;
+	readonly layoutService: { readonly mainContainer: HTMLElement };
+	readonly isFindWidgetOpen: boolean;
+}) => void;
 
 suite('Sessions - SessionsViewPane', () => {
 	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+
+	test('selects control and treatment presentations only when AI UI is visible on desktop', () => {
+		assert.deepStrictEqual({
+			control: getCustomizationsPresentation(false, true, false, false),
+			treatment: getCustomizationsPresentation(false, true, false, true),
+			phone: getCustomizationsPresentation(true, true, false, true),
+			aiDisabled: getCustomizationsPresentation(false, false, false, true),
+			aiHidden: getCustomizationsPresentation(false, true, true, true),
+		}, {
+			control: 'control',
+			treatment: 'treatment',
+			phone: 'hidden',
+			aiDisabled: 'hidden',
+			aiHidden: 'hidden',
+		});
+	});
+
+	test('preserves Customizations and Automations focus while switching presentations', () => {
+		const updatePresentation = Reflect.get(SessionsView.prototype, 'updateCustomizationsPresentation') as
+			(this: ReturnType<typeof createHost>, presentation: 'hidden' | 'control' | 'treatment') => void;
+
+		function createHost(
+			presentation: 'hidden' | 'control' | 'treatment',
+			focused: 'customizations' | 'automations',
+		) {
+			const calls: string[] = [];
+			const widget = {
+				hasFocus: () => presentation === 'control' && focused === 'customizations',
+				focus: () => calls.push('focusControlCustomizations'),
+			};
+			const sessionsControl = {
+				isCustomizationsFocused: () => presentation === 'treatment' && focused === 'customizations',
+				isAutomationsFocused: () => focused === 'automations',
+				updateNavigationVisibility: () => calls.push('updateTreeNavigation'),
+				focusCustomizations: () => calls.push('focusTreatmentCustomizations'),
+				focusAutomations: () => calls.push('focusControlAutomations'),
+				focus: () => calls.push('focusSessions'),
+			};
+			const rearrangeContextValues: boolean[] = [];
+			const host = {
+				customizationsPresentation: presentation,
+				customizationsNavigationVisible: { set: () => { } },
+				sessionsListRearrangeContext: { set: (value: boolean) => rearrangeContextValues.push(value) },
+				_customizationsWidget: presentation === 'control' ? widget : undefined,
+				sessionsControl,
+				updateHeaderLayout: () => calls.push('updateHeader'),
+				removeCustomizationsPane: () => {
+					calls.push('removePane');
+					host._customizationsWidget = undefined;
+				},
+				updateCustomizationsPane: () => {
+					calls.push('createPane');
+					host._customizationsWidget = widget;
+				},
+				layoutSidebarSplitView: () => calls.push('layout'),
+				calls,
+				rearrangeContextValues,
+			};
+			return host;
+		}
+
+		const controlCustomizations = createHost('control', 'customizations');
+		updatePresentation.call(controlCustomizations, 'treatment');
+		const treatmentAutomations = createHost('treatment', 'automations');
+		updatePresentation.call(treatmentAutomations, 'control');
+		const hiddenCustomizations = createHost('treatment', 'customizations');
+		updatePresentation.call(hiddenCustomizations, 'hidden');
+
+		assert.deepStrictEqual({
+			controlCustomizations: controlCustomizations.calls,
+			treatmentAutomations: treatmentAutomations.calls,
+			hiddenCustomizations: hiddenCustomizations.calls,
+			rearrangeContextValues: [
+				controlCustomizations.rearrangeContextValues,
+				treatmentAutomations.rearrangeContextValues,
+				hiddenCustomizations.rearrangeContextValues,
+			],
+		}, {
+			controlCustomizations: [
+				'updateHeader',
+				'updateTreeNavigation',
+				'removePane',
+				'focusTreatmentCustomizations',
+				'layout',
+			],
+			treatmentAutomations: [
+				'updateHeader',
+				'updateTreeNavigation',
+				'removePane',
+				'createPane',
+				'focusControlAutomations',
+				'layout',
+			],
+			hiddenCustomizations: [
+				'updateHeader',
+				'updateTreeNavigation',
+				'removePane',
+				'focusSessions',
+				'layout',
+			],
+			rearrangeContextValues: [[true], [false], [false]],
+		});
+	});
 
 	test('does not reserve customization space on phones and restores the pane on desktop', () => {
 		const mainContainer = mainWindow.document.createElement('div');
@@ -71,11 +183,21 @@ suite('Sessions - SessionsViewPane', () => {
 			sidebarSplitView: splitView,
 			customizationsPaneDisposables,
 			_customizationsWidget: undefined as AICustomizationShortcutsWidget | undefined,
+			customizationsPresentation: 'control',
 			currentBodyWidth: 300,
 			currentBodyHeight: 600,
 			didInitializePaneSizes: false,
 			getCustomizationsPaneHeight: () => 200,
 			layoutSidebarSplitView: (): void => layoutPane.call(host),
+			removeCustomizationsPane: (): void => {
+				if (!host._customizationsWidget) {
+					return;
+				}
+				splitView.removeView(1, Sizing.Distribute);
+				host._customizationsWidget = undefined;
+				customizationsPaneDisposables.clear();
+				host.didInitializePaneSizes = false;
+			},
 		};
 		const updatePane = Reflect.get(SessionsView.prototype, 'updateCustomizationsPane') as (this: typeof host) => void;
 		const layoutPane = Reflect.get(SessionsView.prototype, 'layoutSidebarSplitView') as (this: typeof host) => void;
@@ -114,145 +236,6 @@ suite('Sessions - SessionsViewPane', () => {
 			desktop: { panes: 2, sessionsHeight: 400, customizations: 1, hasWidget: true, disposedWidgets: 0, focusCalls: 1 },
 			phoneAgain: { panes: 1, sessionsHeight: 600, customizations: 0, hasWidget: false, disposedWidgets: 1, focusCalls: 1 },
 			desktopAgain: { panes: 2, sessionsHeight: 400, customizations: 1, hasWidget: true, disposedWidgets: 1, focusCalls: 2 },
-		});
-	});
-
-	suite('sorting', () => {
-		function createHarness(defaultSorting?: SessionsSorting, storedSorting?: string) {
-			const configurationService = new TestConfigurationService({ [SESSIONS_LIST_DEFAULT_SORT_ORDER_SETTING]: defaultSorting });
-			disposables.add(configurationService.onDidChangeConfigurationEmitter);
-			const instantiationService = workbenchInstantiationService({ configurationService: () => configurationService }, disposables);
-			instantiationService.stub(IViewDescriptorService, upcastPartial<IViewDescriptorService>({
-				onDidChangeLocation: Event.None,
-				getViewLocationById: () => ViewContainerLocation.Sidebar,
-			}));
-			instantiationService.stub(ISessionsManagementService, upcastPartial<ISessionsManagementService>({}));
-			instantiationService.stub(ISessionsService, upcastPartial<ISessionsService>({}));
-
-			const storageService = instantiationService.get(IStorageService);
-			if (storedSorting !== undefined) {
-				storageService.store('sessionsViewPane.sorting', storedSorting, StorageScope.PROFILE, StorageTarget.USER);
-			}
-			const contextKeyService = instantiationService.get(IContextKeyService);
-			const getSorting = () => contextKeyService.getContextKeyValue<SessionsSorting>(SessionsViewSortingContext.key);
-			const updates: (SessionsSorting | undefined)[] = [];
-			const createView = () => {
-				const view = disposables.add(instantiationService.createInstance(SessionsView, { id: SessionsViewId, title: 'Sessions' }));
-				view.sessionsControl = upcastPartial<SessionsList>({
-					update: () => { updates.push(getSorting()); },
-				});
-				return view;
-			};
-
-			return {
-				view: createView(),
-				createView,
-				getState: () => ({
-					sorting: getSorting(),
-					storedSorting: storageService.get('sessionsViewPane.sorting', StorageScope.PROFILE),
-					updates: [...updates],
-				}),
-				async setDefaultSorting(sorting: SessionsSorting) {
-					await configurationService.setUserConfiguration(SESSIONS_LIST_DEFAULT_SORT_ORDER_SETTING, sorting);
-					configurationService.onDidChangeConfigurationEmitter.fire({
-						source: ConfigurationTarget.DEFAULT,
-						affectedKeys: new Set([SESSIONS_LIST_DEFAULT_SORT_ORDER_SETTING]),
-						change: { keys: [SESSIONS_LIST_DEFAULT_SORT_ORDER_SETTING], overrides: [] },
-						affectsConfiguration: section => section === SESSIONS_LIST_DEFAULT_SORT_ORDER_SETTING,
-					});
-				},
-			};
-		}
-
-		for (const defaultSorting of [undefined, SessionsSorting.Created, SessionsSorting.Updated]) {
-			test(`uses the ${defaultSorting ?? 'unset'} default without persisting it`, () => {
-				const harness = createHarness(defaultSorting);
-
-				assert.deepStrictEqual(harness.getState(), {
-					sorting: defaultSorting ?? SessionsSorting.Created,
-					storedSorting: undefined,
-					updates: [],
-				});
-			});
-		}
-
-		for (const sorting of [SessionsSorting.Created, SessionsSorting.Updated]) {
-			const defaultSorting = sorting === SessionsSorting.Created ? SessionsSorting.Updated : SessionsSorting.Created;
-
-			test(`restores a saved ${sorting} sort order instead of the default`, () => {
-				const harness = createHarness(defaultSorting, sorting);
-
-				assert.deepStrictEqual(harness.getState(), {
-					sorting,
-					storedSorting: sorting,
-					updates: [],
-				});
-			});
-
-			test(`remembers a user's ${sorting} selection across default changes and view recreation`, async () => {
-				const harness = createHarness(defaultSorting);
-				harness.view.setSorting(sorting);
-				const selectedState = harness.getState();
-
-				await harness.setDefaultSorting(sorting);
-				await harness.setDefaultSorting(defaultSorting);
-				harness.view.dispose();
-				harness.createView();
-
-				const expectedState = { sorting, storedSorting: sorting, updates: [sorting] };
-				assert.deepStrictEqual({
-					selected: selectedState,
-					restored: harness.getState(),
-				}, {
-					selected: expectedState,
-					restored: expectedState,
-				});
-			});
-		}
-
-		test('uses the configured default when the stored sort order is invalid', () => {
-			const harness = createHarness(SessionsSorting.Updated, 'invalid');
-
-			assert.deepStrictEqual(harness.getState(), {
-				sorting: SessionsSorting.Updated,
-				storedSorting: 'invalid',
-				updates: [],
-			});
-		});
-
-		test('applies default changes without saving a user preference', async () => {
-			const harness = createHarness(SessionsSorting.Created);
-			await harness.setDefaultSorting(SessionsSorting.Updated);
-			const updatedState = harness.getState();
-			await harness.setDefaultSorting(SessionsSorting.Created);
-
-			assert.deepStrictEqual({
-				updated: updatedState,
-				restored: harness.getState(),
-			}, {
-				updated: {
-					sorting: SessionsSorting.Updated,
-					storedSorting: undefined,
-					updates: [SessionsSorting.Updated],
-				},
-				restored: {
-					sorting: SessionsSorting.Created,
-					storedSorting: undefined,
-					updates: [SessionsSorting.Updated, SessionsSorting.Created],
-				},
-			});
-		});
-
-		test('remembers an explicit selection even when it matches the default', async () => {
-			const harness = createHarness(SessionsSorting.Updated);
-			harness.view.setSorting(SessionsSorting.Updated);
-			await harness.setDefaultSorting(SessionsSorting.Created);
-
-			assert.deepStrictEqual(harness.getState(), {
-				sorting: SessionsSorting.Updated,
-				storedSorting: SessionsSorting.Updated,
-				updates: [],
-			});
 		});
 	});
 
@@ -296,15 +279,105 @@ suite('Sessions - SessionsViewPane', () => {
 				defaultHeight,
 				compactHeight,
 				restoredHeight,
+				flexShrink: mainWindow.getComputedStyle(headerRow).flexShrink,
 				hasCompactClass: workbench.classList.contains('editor-tabs-compact-height'),
 			}, {
 				defaultHeight: '32px',
 				compactHeight: '28px',
 				restoredHeight: '32px',
+				flexShrink: '0',
 				hasCompactClass: false,
 			});
 		} finally {
 			workbench.remove();
 		}
+	});
+
+	test('hides session details only when an active comparison participant is opened', () => {
+		const attempt = upcastPartial<ISession>({ sessionId: 'attempt', resource: URI.parse('test:/attempt') });
+		const judge = upcastPartial<ISession>({ sessionId: 'judge', resource: URI.parse('test:/judge') });
+		const comparison: ISessionComparison = {
+			id: 'comparison',
+			groupId: 'group',
+			title: 'Compare',
+			createdAt: 1,
+			workspace: URI.file('/workspace'),
+			prompt: 'Implement',
+			participants: [
+				{
+					id: 'attempt',
+					role: SessionComparisonParticipantRole.Attempt,
+					harness: { providerId: 'test', sessionTypeId: 'test', label: 'Test' },
+					sessionResource: attempt.resource,
+				},
+				{
+					id: 'judge',
+					role: SessionComparisonParticipantRole.Judge,
+					harness: { providerId: 'test', sessionTypeId: 'test', label: 'Test' },
+					sessionResource: judge.resource,
+				},
+			],
+		};
+		let hideSidePaneCalls = 0;
+		let currentComparison: ISessionComparison | undefined = comparison;
+		const visibleSessions = observableValue<readonly ISession[]>('visibleSessions', [attempt, judge]);
+		const host = {
+			sessionComparisonService: {
+				getComparisonForSession: () => currentComparison,
+			},
+			sessionsService: { visibleSessions },
+			layoutService: {
+				hideSidePane: () => hideSidePaneCalls++,
+				mainContainer: mainWindow.document.createElement('div'),
+				setPartHidden: () => { },
+			},
+		};
+
+		handleSessionOpened.call(host, attempt);
+		handleSessionOpened.call(host, judge);
+		// A cancelled or superseded open leaves the participant hidden, so the side pane stays.
+		visibleSessions.set([], undefined);
+		handleSessionOpened.call(host, attempt);
+		visibleSessions.set([attempt, judge], undefined);
+		currentComparison = { ...comparison, archivedAt: 1 };
+		handleSessionOpened.call(host, attempt);
+		currentComparison = undefined;
+		handleSessionOpened.call(host, attempt);
+
+		assert.strictEqual(hideSidePaneCalls, 2);
+	});
+
+	test('keeps the Sessions title visible while measuring a narrow header', () => {
+		const mainContainer = mainWindow.document.createElement('div');
+		const headerRow = mainWindow.document.createElement('div');
+		const headerLabel = mainWindow.document.createElement('div');
+		const headerActions = mainWindow.document.createElement('div');
+		headerLabel.style.display = 'none';
+		headerRow.append(headerLabel, headerActions);
+		Object.defineProperty(headerRow, 'clientWidth', { configurable: true, value: 0 });
+		Object.defineProperty(headerLabel, 'clientWidth', { configurable: true, value: 0 });
+		const host = {
+			sessionsHeaders: new Set([{
+				row: headerRow,
+				label: headerLabel,
+				actions: headerActions,
+				toolbar: undefined,
+			}]),
+			layoutService: { mainContainer },
+			isFindWidgetOpen: false,
+		};
+
+		updateHeaderLayout.call(host);
+		const transientDisplay = headerLabel.style.display;
+		Object.defineProperty(headerRow, 'clientWidth', { configurable: true, value: 200 });
+		updateHeaderLayout.call(host);
+
+		assert.deepStrictEqual({
+			transientDisplay,
+			narrowDisplay: headerLabel.style.display,
+		}, {
+			transientDisplay: '',
+			narrowDisplay: 'none',
+		});
 	});
 });

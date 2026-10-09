@@ -6,27 +6,43 @@
 import { toErrorMessage } from '../../../base/common/errorMessage.js';
 import { Limiter } from '../../../base/common/async.js';
 import { URI } from '../../../base/common/uri.js';
+import { basename } from '../../../base/common/path.js';
+import { isUUID } from '../../../base/common/uuid.js';
+import { createDecorator } from '../../instantiation/common/instantiation.js';
 import { ILogService } from '../../log/common/log.js';
 import { ISessionDataService } from '../common/sessionDataService.js';
 import type { AgentHostCatalogDatabaseReference } from './agentHostCatalogSyncService.js';
 import { ChatOrigin } from '../common/state/protocol/state.js';
-import { isDefaultChatUri, parseRequiredSessionUriFromChatUri } from '../common/state/sessionState.js';
+import { AH_META_IS_READ_DB_KEY, buildChatUri, isDefaultChatUri, parseRequiredSessionUriFromChatUri } from '../common/state/sessionState.js';
 import { fromCatalogChatOrigin, toSerializableJsonValue } from './agentHostCatalogSourceResolver.js';
 import { AGENT_HOST_CATALOG_CHILD_LIMIT } from './agentHostCatalogProjection.js';
 import { IAgentHostDatabase } from './agentHostDatabase.js';
+import { customChatTitleMetadataKey, customChatTitleSourceMetadataKey } from './shared/persistSessionMetadata.js';
 
 export const PEER_CHATS_METADATA_KEY = 'peerChats';
 export const CHAT_PROVIDER_DATA_METADATA_KEY = 'agentHost.chatProviderData';
 export const CHAT_ORIGIN_METADATA_KEY = 'agentHost.chatOrigin';
 export const CHAT_INHERITED_TURN_METADATA_KEY = 'agentHost.chatInheritedTurnId';
+export const CHAT_WORKING_DIRECTORIES_METADATA_KEY = 'agentHost.chatWorkingDirectories';
 const CHAT_METADATA_CONCURRENCY = 4;
 const IMPORTED_PEER_CHAT_LIMIT = AGENT_HOST_CATALOG_CHILD_LIMIT - 1;
 
+export const IAgentHostPeerChatPersistenceService = createDecorator<IAgentHostPeerChatPersistenceService>('agentHostPeerChatPersistenceService');
+
+export interface IAgentHostPeerChatPersistenceService {
+	readonly _serviceBrand: undefined;
+	setRead(session: URI, chat: URI, isRead: boolean): Promise<void>;
+	setArchived(session: URI, chat: URI, archived: boolean): Promise<void>;
+}
+
 export interface IPersistedPeerChat {
 	readonly uri: string;
+	readonly isRead?: boolean;
+	readonly archived?: boolean;
 	readonly providerData?: string;
 	readonly origin?: ChatOrigin;
 	readonly inheritedTurnId?: string;
+	readonly workingDirectories?: readonly string[];
 }
 
 interface IReplaceCentralOptions {
@@ -36,7 +52,9 @@ interface IReplaceCentralOptions {
 	readonly legacyMergeBase?: readonly IPersistedPeerChat[];
 }
 
-export class AgentHostPeerChatStore {
+export class AgentHostPeerChatStore implements IAgentHostPeerChatPersistenceService {
+
+	declare readonly _serviceBrand: undefined;
 
 	private readonly _writes = new Map<string, Promise<void>>();
 	private readonly _deletingSessions = new Map<string, number>();
@@ -49,6 +67,173 @@ export class AgentHostPeerChatStore {
 
 	async tryRead(session: URI, repairLegacyMirror = true): Promise<IPersistedPeerChat[] | undefined> {
 		return this._readCentral(session, repairLegacyMirror);
+	}
+
+	/** Checks the durable completion marker without discovering or restoring any chats. */
+	async hasCompletedChatSelectionRecovery(session: URI): Promise<boolean> {
+		const database = await this._sessionDataService.tryOpenDatabase(session);
+		if (!database) {
+			return false;
+		}
+		try {
+			const raw = await database.object.getMetadata('agentHost.peerChatRecovery339409');
+			return raw !== undefined && this._parseRecoveryBackup(raw).completed === true;
+		} finally {
+			database.dispose();
+		}
+	}
+
+	/** Recovers legacy peer membership only when a restored chat-selection phantom is independently verified. */
+	async recoverChatSelectionCorruption(session: URI, phantomChatIds: readonly string[]): Promise<{ readonly entries: readonly IPersistedPeerChat[]; readonly verifiedPhantomChatIds: readonly string[] } | undefined> {
+		if (session.scheme !== 'copilotcli' || session.authority || session.query || session.fragment || !isUUID(session.path.slice(1)) || !this._sessionDataService.listSessionDataIds) {
+			return undefined;
+		}
+		const dataIds = await this._sessionDataService.listSessionDataIds('');
+		let recovered: { readonly entries: readonly IPersistedPeerChat[]; readonly verifiedPhantomChatIds: readonly string[] } | undefined;
+		await this._enqueue(session, async () => {
+			const parent = await this._sessionDataService.tryOpenDatabase(session);
+			if (!parent) {
+				return;
+			}
+			try {
+				const catalog = await this._database.getSessionChatCatalog(session.toString());
+				if (!catalog) {
+					return;
+				}
+				const backupKey = 'agentHost.peerChatRecovery339409';
+				const rawBackup = await parent.object.getMetadata(backupKey);
+				const backup = rawBackup === undefined ? undefined : this._parseRecoveryBackup(rawBackup);
+				const legacy = await parent.object.getMetadata(PEER_CHATS_METADATA_KEY);
+				const shouldRecover = !backup?.completed && (backup !== undefined || legacy?.trim() === '[]');
+				const sample = URI.parse(buildChatUri(session, 'recovery'));
+				const suffix = basename(this._sessionDataService.getSessionDataDir(sample).path).slice('recovery'.length);
+				const eligible: IPersistedPeerChat[] = [];
+				const verifiedPhantomChatIds: string[] = [];
+				const selectedIds = new Set(phantomChatIds.filter(isUUID));
+				const titleSources = new Set(['user', 'auto', 'agent']);
+				for (const id of [...dataIds].sort()) {
+					if (!id.endsWith(suffix)) {
+						continue;
+					}
+					const chatId = id.slice(0, -suffix.length);
+					const selected = selectedIds.has(chatId);
+					if (!isUUID(chatId) || (!shouldRecover && !selected)) {
+						continue;
+					}
+					const chat = URI.parse(buildChatUri(session, chatId));
+					const uri = chat.toString();
+					if (this._sessionDataService.getSessionDataDir(chat).path !== this._sessionDataService.getSessionDataDirById(id).path) {
+						continue;
+					}
+					const metadata = await parent.object.getMetadataObject({
+						[customChatTitleMetadataKey(uri)]: true,
+						[customChatTitleSourceMetadataKey(uri)]: true,
+					});
+					const deleted = metadata[customChatTitleMetadataKey(uri)] === '' && metadata[customChatTitleSourceMetadataKey(uri)] === '';
+					const remembered = metadata[customChatTitleMetadataKey(uri)] && titleSources.has(metadata[customChatTitleSourceMetadataKey(uri)] ?? '');
+					if (!selected && (!remembered || deleted || (backup && !backup.recovered.includes(uri)))) {
+						continue;
+					}
+					const backing = await this._sessionDataService.tryOpenDatabase(chat);
+					if (!backing) {
+						continue;
+					}
+					try {
+						if (!await backing.object.getMetadata(CHAT_PROVIDER_DATA_METADATA_KEY)) {
+							continue;
+						}
+					} finally {
+						backing.dispose();
+					}
+					if (selected) {
+						verifiedPhantomChatIds.push(chatId);
+					}
+					if (shouldRecover && !deleted && (!backup || backup.recovered.includes(uri))) {
+						eligible.push(await this._readChatMetadata({ uri }));
+					}
+				}
+				if (verifiedPhantomChatIds.length === 0) {
+					return;
+				}
+				const current = this._entriesFromCatalog(catalog.chats);
+				if (!shouldRecover) {
+					recovered = { entries: await this._readWorkingDirectories(current), verifiedPhantomChatIds };
+					return;
+				}
+				const currentCatalog = await this._database.getSessionChatCatalog(session.toString());
+				if (!currentCatalog) {
+					return;
+				}
+				const recoveryRevision = backup?.revision ?? catalog.revision;
+				const missing = eligible.filter(candidate => !current.some(entry => entry.uri === candidate.uri));
+				const entries = [...current, ...missing];
+				if (!backup) {
+					await parent.object.setMetadata(backupKey, JSON.stringify({
+						entries: current,
+						legacy,
+						recovered: eligible.map(entry => entry.uri),
+						revision: recoveryRevision,
+					}));
+				}
+				if (missing.length > 0 && currentCatalog.revision === recoveryRevision) {
+					const result = await this._database.recoverSessionChatCatalog(session.toString(), this._catalogRows(entries), recoveryRevision);
+					if (result.status === 'conflict') {
+						this._logService.warn(`[AgentHostPeerChatStore] Catalogue changed during recovery; preserving current membership for ${session.toString()}`);
+					} else if (result.status !== 'applied') {
+						return;
+					}
+				} else if (missing.length > 0 && currentCatalog.revision !== recoveryRevision) {
+					this._logService.warn(`[AgentHostPeerChatStore] Catalogue changed since recovery was prepared; preserving current membership for ${session.toString()}`);
+				}
+				while (true) {
+					const latest = await this._database.getSessionChatCatalog(session.toString());
+					if (!latest) {
+						return;
+					}
+					const entries = await this._readWorkingDirectories(this._entriesFromCatalog(latest.chats));
+					if (!await this._writeLegacyMirror(session, entries, latest.revision, parent)) {
+						continue;
+					}
+					const saved = await parent.object.getMetadata(backupKey);
+					if (saved === undefined) {
+						throw new Error(`Missing peer-chat recovery backup for ${session.toString()}`);
+					}
+					await parent.object.setMetadata(backupKey, JSON.stringify({ ...this._parseRecoveryBackup(saved), completed: true }));
+					recovered = { entries, verifiedPhantomChatIds };
+					const restoredCount = entries.filter(entry => !current.some(previous => previous.uri === entry.uri)).length;
+					if (restoredCount < missing.length) {
+						this._logService.warn(`[AgentHostPeerChatStore] Skipped ${missing.length - restoredCount} recovery candidates due to current ownership or concurrent changes for ${session.toString()}`);
+					}
+					this._logService.info(`[AgentHostPeerChatStore] Recovered ${restoredCount} peer chats affected by #339409 for ${session.toString()}`);
+					return;
+				}
+			} finally {
+				parent.dispose();
+			}
+		});
+		return recovered;
+	}
+
+	private _parseRecoveryBackup(raw: string): { readonly recovered: readonly string[]; readonly completed?: boolean; readonly entries: readonly unknown[]; readonly legacy?: string; readonly revision: number } {
+		const parsed: unknown = JSON.parse(raw);
+		if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+			throw new Error('Invalid peer-chat recovery backup');
+		}
+		const value = parsed as Record<string, unknown>;
+		if (!Array.isArray(value.recovered) || !value.recovered.every(uri => typeof uri === 'string')
+			|| !Array.isArray(value.entries)
+			|| typeof value.revision !== 'number' || !Number.isSafeInteger(value.revision) || value.revision <= 0
+			|| (value.completed !== undefined && typeof value.completed !== 'boolean')
+			|| (value.legacy !== undefined && typeof value.legacy !== 'string')) {
+			throw new Error('Invalid peer-chat recovery backup');
+		}
+		return {
+			recovered: value.recovered,
+			entries: value.entries,
+			revision: value.revision,
+			...(typeof value.completed === 'boolean' ? { completed: value.completed } : {}),
+			...(typeof value.legacy === 'string' ? { legacy: value.legacy } : {}),
+		};
 	}
 
 	/** Imports membership changed by an older build, then returns central authority. */
@@ -131,7 +316,7 @@ export class AgentHostPeerChatStore {
 				this._logService.error(error, `[AgentHostPeerChatStore] Failed to repair legacy peer-chat membership for ${session.toString()}`);
 			});
 		}
-		return this._entriesFromCatalog(catalog.chats);
+		return this._readWorkingDirectories(this._entriesFromCatalog(catalog.chats));
 	}
 
 	/**
@@ -196,21 +381,59 @@ export class AgentHostPeerChatStore {
 		});
 	}
 
-	upsert(session: URI, chat: URI, providerData: string | undefined, origin?: ChatOrigin, inheritedTurnId?: string): Promise<void> {
+	upsert(session: URI, chat: URI, providerData: string | undefined, origin?: ChatOrigin, inheritedTurnId?: string, workingDirectories?: readonly string[]): Promise<void> {
 		const chatUri = chat.toString();
 		return this._enqueueWrite(session, entries => {
 			const existing = entries.find(entry => entry.uri === chatUri);
 			const effectiveOrigin = origin ?? existing?.origin;
 			const effectiveInheritedTurnId = inheritedTurnId ?? existing?.inheritedTurnId;
+			const effectiveWorkingDirectories = workingDirectories ?? existing?.workingDirectories;
 			const next = entries.filter(entry => entry.uri !== chatUri);
 			next.push({
 				uri: chatUri,
+				...(existing?.isRead !== undefined ? { isRead: existing.isRead } : {}),
+				...(existing?.archived ? { archived: true } : {}),
 				...(providerData !== undefined ? { providerData } : {}),
 				...(effectiveOrigin !== undefined ? { origin: effectiveOrigin } : {}),
 				...(effectiveInheritedTurnId !== undefined ? { inheritedTurnId: effectiveInheritedTurnId } : {}),
+				...(effectiveWorkingDirectories !== undefined ? { workingDirectories: [...effectiveWorkingDirectories] } : {}),
 			});
 			return next;
 		});
+	}
+
+	updateWorkingDirectories(session: URI, chat: URI, workingDirectories: readonly string[]): Promise<void> {
+		const chatUri = chat.toString();
+		return this._enqueueWrite(session, entries => {
+			const existing = entries.find(entry => entry.uri === chatUri);
+			const next = entries.filter(entry => entry.uri !== chatUri);
+			next.push({
+				uri: chatUri,
+				...(existing?.isRead !== undefined ? { isRead: existing.isRead } : {}),
+				...(existing?.archived ? { archived: true } : {}),
+				...(existing?.providerData !== undefined ? { providerData: existing.providerData } : {}),
+				...(existing?.origin !== undefined ? { origin: existing.origin } : {}),
+				...(existing?.inheritedTurnId !== undefined ? { inheritedTurnId: existing.inheritedTurnId } : {}),
+				workingDirectories: [...workingDirectories],
+			});
+			return next;
+		});
+	}
+
+	setArchived(session: URI, chat: URI, archived: boolean): Promise<void> {
+		const chatUri = chat.toString();
+		return this._enqueueWrite(session, entries => entries.map(entry =>
+			entry.uri === chatUri
+				? { ...entry, archived: archived || undefined }
+				: entry));
+	}
+
+	setRead(session: URI, chat: URI, isRead: boolean): Promise<void> {
+		const chatUri = chat.toString();
+		return this._enqueueWrite(session, entries => entries.map(entry =>
+			entry.uri === chatUri
+				? { ...entry, isRead }
+				: entry));
 	}
 
 	remove(session: URI, chat: URI): Promise<void> {
@@ -310,7 +533,8 @@ export class AgentHostPeerChatStore {
 				?? (legacyIsCurrentMirror ? central : legacy)
 				?? central
 				?? [];
-			const updated = this._parse(session, JSON.stringify(mutate(current)));
+			const currentWithWorkingDirectories = await this._readWorkingDirectories(current);
+			const updated = this._parse(session, JSON.stringify(mutate(currentWithWorkingDirectories)));
 			const result = await this._replaceCentral(session, updated, catalog?.revision, {
 				previousEntries: legacyIsCurrentMirror ? central : undefined,
 				legacyMergeBase: legacy !== undefined && !legacyIsCurrentMirror ? legacy : undefined,
@@ -345,6 +569,8 @@ export class AgentHostPeerChatStore {
 	private _catalogRows(entries: readonly IPersistedPeerChat[]): Array<{
 		readonly chat: string;
 		readonly order: number;
+		readonly isRead?: boolean;
+		readonly archived?: boolean;
 		readonly providerData?: string;
 		readonly origin?: string;
 		readonly inheritedTurnId?: string;
@@ -352,6 +578,8 @@ export class AgentHostPeerChatStore {
 		return entries.map((entry, order) => ({
 			chat: entry.uri,
 			order,
+			...(entry.isRead !== undefined ? { isRead: entry.isRead } : {}),
+			...(entry.archived === true ? { archived: true } : {}),
 			...(entry.providerData !== undefined ? { providerData: entry.providerData } : {}),
 			...(entry.origin !== undefined ? { origin: this._stringifyOrigin(entry.origin) } : {}),
 			...(entry.inheritedTurnId !== undefined ? { inheritedTurnId: entry.inheritedTurnId } : {}),
@@ -375,7 +603,7 @@ export class AgentHostPeerChatStore {
 			}
 			if (current.revision !== revision) {
 				previousEntries = entries;
-				entries = this._entriesFromCatalog(current.chats);
+				entries = await this._readWorkingDirectories(this._entriesFromCatalog(current.chats));
 				revision = current.revision;
 				continue;
 			}
@@ -387,7 +615,7 @@ export class AgentHostPeerChatStore {
 				return;
 			}
 			previousEntries = entries;
-			entries = this._entriesFromCatalog(superseding.chats);
+			entries = await this._readWorkingDirectories(this._entriesFromCatalog(superseding.chats));
 			revision = superseding.revision;
 		}
 	}
@@ -521,15 +749,24 @@ export class AgentHostPeerChatStore {
 		}
 		try {
 			const metadata = await ref.object.getMetadataObject({
+				[AH_META_IS_READ_DB_KEY]: true,
 				[CHAT_PROVIDER_DATA_METADATA_KEY]: true,
 				[CHAT_ORIGIN_METADATA_KEY]: true,
 				[CHAT_INHERITED_TURN_METADATA_KEY]: true,
+				[CHAT_WORKING_DIRECTORIES_METADATA_KEY]: true,
 			});
+			const isRead = metadata[AH_META_IS_READ_DB_KEY] !== undefined
+				? metadata[AH_META_IS_READ_DB_KEY] === 'true'
+				: entry.isRead;
 			const origin = metadata[CHAT_ORIGIN_METADATA_KEY]
 				? this._parseOrigin(metadata[CHAT_ORIGIN_METADATA_KEY])
 				: metadata[CHAT_ORIGIN_METADATA_KEY] === '' ? undefined : entry.origin;
+			const workingDirectories = metadata[CHAT_WORKING_DIRECTORIES_METADATA_KEY]
+				? this._parseWorkingDirectories(metadata[CHAT_WORKING_DIRECTORIES_METADATA_KEY])
+				: metadata[CHAT_WORKING_DIRECTORIES_METADATA_KEY] === '' ? undefined : entry.workingDirectories;
 			return {
 				uri: entry.uri,
+				...(isRead !== undefined ? { isRead } : {}),
 				...(metadata[CHAT_PROVIDER_DATA_METADATA_KEY] !== undefined
 					? metadata[CHAT_PROVIDER_DATA_METADATA_KEY] ? { providerData: metadata[CHAT_PROVIDER_DATA_METADATA_KEY] } : {}
 					: entry.providerData !== undefined ? { providerData: entry.providerData } : {}),
@@ -537,19 +774,49 @@ export class AgentHostPeerChatStore {
 				...(metadata[CHAT_INHERITED_TURN_METADATA_KEY] !== undefined
 					? metadata[CHAT_INHERITED_TURN_METADATA_KEY] ? { inheritedTurnId: metadata[CHAT_INHERITED_TURN_METADATA_KEY] } : {}
 					: entry.inheritedTurnId !== undefined ? { inheritedTurnId: entry.inheritedTurnId } : {}),
+				...(workingDirectories !== undefined ? { workingDirectories } : {}),
 			};
 		} finally {
 			ref.dispose();
 		}
 	}
 
+	private async _readWorkingDirectories(entries: readonly IPersistedPeerChat[]): Promise<IPersistedPeerChat[]> {
+		const limiter = new Limiter<IPersistedPeerChat>(CHAT_METADATA_CONCURRENCY);
+		return Promise.all(entries.map(entry => limiter.queue(async () => {
+			const ref = await this._sessionDataService.tryOpenDatabase(URI.parse(entry.uri));
+			if (!ref) {
+				return entry;
+			}
+			try {
+				const raw = await ref.object.getMetadata(CHAT_WORKING_DIRECTORIES_METADATA_KEY);
+				if (raw === undefined) {
+					return entry;
+				}
+				const workingDirectories = raw ? this._parseWorkingDirectories(raw) : undefined;
+				const { workingDirectories: _existingWorkingDirectories, ...entryWithoutWorkingDirectories } = entry;
+				return {
+					...entryWithoutWorkingDirectories,
+					...(workingDirectories !== undefined ? { workingDirectories } : {}),
+				};
+			} catch (error) {
+				this._logService.warn(`[AgentHostPeerChatStore] Failed to read chat working directories for ${entry.uri}: ${toErrorMessage(error)}`);
+				return entry;
+			} finally {
+				ref.dispose();
+			}
+		})));
+	}
+
 	private async _writeChatMetadata(entry: IPersistedPeerChat): Promise<void> {
 		const ref = this._sessionDataService.openDatabase(URI.parse(entry.uri));
 		try {
 			await ref.object.setMetadataValues({
+				...(entry.isRead !== undefined ? { [AH_META_IS_READ_DB_KEY]: entry.isRead ? 'true' : '' } : {}),
 				[CHAT_PROVIDER_DATA_METADATA_KEY]: entry.providerData ?? '',
 				[CHAT_ORIGIN_METADATA_KEY]: entry.origin === undefined ? '' : this._stringifyOrigin(entry.origin),
 				[CHAT_INHERITED_TURN_METADATA_KEY]: entry.inheritedTurnId ?? '',
+				[CHAT_WORKING_DIRECTORIES_METADATA_KEY]: entry.workingDirectories === undefined ? '' : JSON.stringify(entry.workingDirectories),
 			});
 		} finally {
 			ref.dispose();
@@ -569,14 +836,26 @@ export class AgentHostPeerChatStore {
 		return JSON.stringify(value);
 	}
 
+	private _parseWorkingDirectories(raw: string): readonly string[] {
+		const parsed: unknown = JSON.parse(raw);
+		if (!Array.isArray(parsed) || !parsed.every(directory => typeof directory === 'string')) {
+			throw new Error('expected an array of working-directory URIs');
+		}
+		return parsed;
+	}
+
 	private _entriesFromCatalog(chats: readonly {
 		readonly chat: string;
+		readonly isRead?: boolean;
 		readonly providerData?: string;
 		readonly origin?: string;
 		readonly inheritedTurnId?: string;
+		readonly archived?: boolean;
 	}[]): IPersistedPeerChat[] {
 		return chats.map(chat => ({
 			uri: chat.chat,
+			...(chat.isRead !== undefined ? { isRead: chat.isRead } : {}),
+			...(chat.archived ? { archived: true } : {}),
 			...(chat.providerData !== undefined ? { providerData: chat.providerData } : {}),
 			...(chat.origin !== undefined ? { origin: this._parseOrigin(chat.origin) } : {}),
 			...(chat.inheritedTurnId !== undefined ? { inheritedTurnId: chat.inheritedTurnId } : {}),
@@ -624,6 +903,18 @@ export class AgentHostPeerChatStore {
 				this._logService.warn(`[AgentService] Skipping peer-chat catalog entry ${index} with invalid inherited turn id`);
 				continue;
 			}
+			if (value.workingDirectories !== undefined && (!Array.isArray(value.workingDirectories) || !value.workingDirectories.every(directory => typeof directory === 'string'))) {
+				this._logService.warn(`[AgentService] Skipping peer-chat catalog entry ${index} with invalid working directories`);
+				continue;
+			}
+			if (value.archived !== undefined && typeof value.archived !== 'boolean') {
+				this._logService.warn(`[AgentService] Skipping peer-chat catalog entry ${index} with invalid archived state`);
+				continue;
+			}
+			if (value.isRead !== undefined && typeof value.isRead !== 'boolean') {
+				this._logService.warn(`[AgentService] Skipping peer-chat catalog entry ${index} with invalid read state`);
+				continue;
+			}
 			const originValue = toSerializableJsonValue(value.origin);
 			const origin = fromCatalogChatOrigin(originValue);
 			if (value.origin !== undefined && !origin) {
@@ -632,9 +923,12 @@ export class AgentHostPeerChatStore {
 			seen.add(value.uri);
 			result.push({
 				uri: value.uri,
+				...(typeof value.isRead === 'boolean' ? { isRead: value.isRead } : {}),
+				...(value.archived === true ? { archived: true } : {}),
 				...(typeof value.providerData === 'string' ? { providerData: value.providerData } : {}),
 				...(origin ? { origin } : {}),
 				...(typeof value.inheritedTurnId === 'string' ? { inheritedTurnId: value.inheritedTurnId } : {}),
+				...(Array.isArray(value.workingDirectories) ? { workingDirectories: value.workingDirectories } : {}),
 			});
 		}
 		return result;

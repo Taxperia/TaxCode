@@ -164,7 +164,7 @@ export function isTaxCodeBuildProfileName(value: string): value is TaxCodeBuildP
 }
 
 export function getTaxCodeBuildProfile(environment: NodeJS.ProcessEnv = process.env): ITaxCodeBuildProfile {
-	const requestedProfile = environment['TAXCODE_BUILD_PROFILE'] ?? 'plugins';
+	const requestedProfile = environment.TAXCODE_BUILD_PROFILE ?? 'plugins';
 	if (!isTaxCodeBuildProfileName(requestedProfile)) {
 		throw new Error(`Unknown TAXCODE_BUILD_PROFILE '${requestedProfile}'. Expected one of: ${taxCodeBuildProfileNames.join(', ')}.`);
 	}

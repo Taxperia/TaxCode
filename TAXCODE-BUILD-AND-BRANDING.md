@@ -59,7 +59,7 @@ TaxCode-<sürüm>-LowMemory-UserSetup-x64.exe
 taxcode-update.json
 ```
 
-Release etiketi `taxcode-v<sürüm>` biçiminde olmalıdır; örneğin `taxcode-v1.139.2`. Manifest her profil için doğru kurulum dosyasının GitHub adresini ve SHA-256 özetini içerir. Uygulama yalnızca `github.com/Taxperia/TaxCode/releases/download/...` adreslerini kabul eder ve indirilen dosyayı çalıştırmadan önce özeti doğrular.
+Release etiketi `taxcode-v<sürüm>` biçiminde olmalıdır; örneğin `taxcode-v1.141.0`. Manifest her profil için doğru kurulum dosyasının GitHub adresini ve SHA-256 özetini içerir. Uygulama yalnızca `github.com/Taxperia/TaxCode/releases/download/...` adreslerini kabul eder ve indirilen dosyayı çalıştırmadan önce özeti doğrular.
 
 Bu güncelleyici kodunu içermeyen eski TaxCode sürümleri ilk kez elle kurulmalıdır. Bu sürüm kurulduktan sonra sonraki sürümler `Help > Check for Updates...` ve arka plan güncelleme akışıyla alınabilir.
 
@@ -115,4 +115,4 @@ Pluginli sürüm Open VSX kullanır. Microsoft Visual Studio Marketplace uç nok
 
 GitHub Copilot, TaxCode paketine yerleşik olarak eklenmez. Bunun iki nedeni vardır: yerel OSS paketleme akışında SDK bağımlılıklarının güvenilir biçimde taşınmaması ve telemetrisiz genel dağıtımın bu hesaba bağlı uzantıdan bağımsız tutulması. Pluginli sürümün genel uzantı hostu ve Open VSX galerisi tam olarak açıktır.
 
-> Not: `defaultChatAgent` alanı yalnızca çekirdek workbench uyumluluğu için `product.json` içinde korunur. Bu alanın bulunması GitHub Copilot eklentisinin pakete dahil edildiği anlamına gelmez. Alan kaldırılırsa VS Code 1.140 çekirdeğindeki onboarding, varsayılan hesap ve galeri servisleri workbench açılmadan hata verebilir. TaxCode profillerinde otomatik AI onboarding ayrıca kapalıdır.
+> Not: `defaultChatAgent` alanı yalnızca çekirdek workbench uyumluluğu için `product.json` içinde korunur. Bu alanın bulunması GitHub Copilot eklentisinin pakete dahil edildiği anlamına gelmez. Alan kaldırılırsa VS Code 1.141 çekirdeğindeki onboarding, varsayılan hesap ve galeri servisleri workbench açılmadan hata verebilir. TaxCode profillerinde otomatik AI onboarding ayrıca kapalıdır.

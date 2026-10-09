@@ -118,35 +118,18 @@ export function typeCheckExtension(extensionPath: string, forWeb: boolean): Prom
 	return spawnTsgo(tsconfigPath, { taskName: 'typechecking extension (tsgo)', noEmit: true });
 }
 
-let localExtensionTypeCheckQueue: Promise<void> = Promise.resolve();
-
 export function typeCheckExtensionStream(extensionPath: string, forWeb: boolean): Stream {
 	const tsconfigFileName = forWeb ? 'tsconfig.browser.json' : 'tsconfig.json';
 	const tsconfigPath = path.join(extensionPath, tsconfigFileName);
-	const result = es.through();
-	const typeCheckPromise = localExtensionTypeCheckQueue.then(() =>
-		spawnTsgo(tsconfigPath, { taskName: 'typechecking extension (tsgo)', noEmit: true })
-	);
-	localExtensionTypeCheckQueue = typeCheckPromise.then(() => undefined, () => undefined);
-
-	typeCheckPromise
-		.then(() => result.emit('end'))
-		.catch(err => result.emit('error', err));
-
-	return result;
+	return createTsgoStream(tsconfigPath, { taskName: 'typechecking extension (tsgo)', noEmit: true });
 }
 
-
-let localExtensionFileListingQueue: Promise<void> = Promise.resolve();
 
 function fromLocalNormal(extensionPath: string): Stream {
 	const vsce = require('@vscode/vsce') as typeof import('@vscode/vsce');
 	const result = es.through();
 
-	const fileNamesPromise = localExtensionFileListingQueue.then(() => vsce.listFiles({ cwd: extensionPath, packageManager: vsce.PackageManager.Npm }));
-	localExtensionFileListingQueue = fileNamesPromise.then(() => undefined, () => undefined);
-
-	fileNamesPromise
+	vsce.listFiles({ cwd: extensionPath, packageManager: vsce.PackageManager.Npm })
 		.then(fileNames => {
 			const files = fileNames
 				.map(fileName => path.join(extensionPath, fileName))

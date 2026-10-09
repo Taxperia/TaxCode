@@ -57,10 +57,9 @@ export class AzureInsightReporter implements TelemetrySender {
 		const trackingId = this.getTrackingId();
 		this.client.trackEvent({
 			name: this.massageEventName(eventName),
-			// Application Insights 3.x maps this OpenTelemetry semantic attribute
-			// to the ai.user.id envelope tag. The former tagOverrides API was removed.
-			properties: trackingId ? { ...properties, 'enduser.pseudo.id': trackingId } : properties,
+			properties,
 			measurements,
+			tagOverrides: trackingId ? { 'ai.user.id': trackingId } : undefined
 		});
 	}
 
@@ -74,7 +73,13 @@ export class AzureInsightReporter implements TelemetrySender {
 	}
 
 	flush(): void | Thenable<void> {
-		return this.client.flush();
+		return new Promise(resolve => {
+			this.client.flush({
+				callback: () => {
+					resolve(undefined);
+				},
+			});
+		});
 	}
 
 	private massageEventName(eventName: string): string {
