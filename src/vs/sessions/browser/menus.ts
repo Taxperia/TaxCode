@@ -77,6 +77,7 @@ export const Menus = {
 	SessionWorkspaceManage: new MenuId('Sessions.SessionWorkspaceManage'),
 	SessionBarToolbar: new MenuId('SessionsSessionBarToolbar'),
 	SessionGridLayout: new MenuId('SessionsGridLayout'),
+	SessionGridOpen: new MenuId('SessionsGridOpen'),
 	SessionChatTabs: new MenuId('SessionsSessionChatTabs'),
 	SessionConversations: new MenuId('SessionsSessionConversations'),
 	SessionChatTab: new MenuId('SessionsSessionChatTab'),
@@ -91,6 +92,7 @@ export const Menus = {
 	SessionsDiffEditorView: new MenuId('SessionsDiffEditorView'),
 	SessionsEditorTabsBarContext: new MenuId('SessionsEditorTabsBarContext'),
 	SessionsEditorTabsBarAddTab: new MenuId('SessionsEditorTabsBarAddTab'),
+	SessionsEditorTabsBarAddTabCanvas: new MenuId('SessionsEditorTabsBarAddTabCanvas'),
 	/**
 	 * Entries merged into the dropdown of the changes button bar's primary
 	 * button. A submenu contributed to its `primary` group names a group of

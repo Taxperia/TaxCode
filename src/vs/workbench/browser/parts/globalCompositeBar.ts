@@ -74,6 +74,7 @@ export class GlobalCompositeBar extends Disposable {
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@IStorageService private readonly storageService: IStorageService,
 		@IExtensionService private readonly extensionService: IExtensionService,
+		@IProductService private readonly productService: IProductService,
 	) {
 		super();
 
@@ -122,6 +123,10 @@ export class GlobalCompositeBar extends Disposable {
 	}
 
 	private registerListeners(): void {
+		if (this.productService.taxCodeDisableAuthentication) {
+			return;
+		}
+
 		this.extensionService.whenInstalledExtensionsRegistered().then(() => {
 			if (!this._store.isDisposed) {
 				this._register(this.storageService.onDidChangeValue(StorageScope.PROFILE, AccountsActivityActionViewItem.ACCOUNTS_VISIBILITY_PREFERENCE_KEY, this._store)(() => this.toggleAccountsActivity()));
@@ -143,6 +148,10 @@ export class GlobalCompositeBar extends Disposable {
 	}
 
 	getContextMenuActions(): IAction[] {
+		if (this.productService.taxCodeDisableAuthentication) {
+			return [];
+		}
+
 		return [toAction({ id: 'toggleAccountsVisibility', label: localize('accounts', "Accounts"), checked: this.accountsVisibilityPreference, run: () => this.accountsVisibilityPreference = !this.accountsVisibilityPreference })];
 	}
 
@@ -160,10 +169,14 @@ export class GlobalCompositeBar extends Disposable {
 	}
 
 	private get accountsVisibilityPreference(): boolean {
-		return isAccountsActionVisible(this.storageService);
+		return !this.productService.taxCodeDisableAuthentication && isAccountsActionVisible(this.storageService);
 	}
 
 	private set accountsVisibilityPreference(value: boolean) {
+		if (this.productService.taxCodeDisableAuthentication) {
+			return;
+		}
+
 		setAccountsActionVisible(this.storageService, value);
 	}
 }

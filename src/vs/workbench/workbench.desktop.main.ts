@@ -175,6 +175,7 @@ import './contrib/webview/electron-browser/webview.contribution.js';
 
 // Browser
 import './contrib/browserView/electron-browser/browserView.contribution.js';
+import './contrib/canvases/electron-browser/editorCanvases.contribution.js';
 
 // Splash
 import './contrib/splash/electron-browser/splash.contribution.js';
@@ -200,6 +201,9 @@ import './contrib/agentsVoice/electron-browser/agentsVoiceNativeCommands.js';
 
 // Encryption
 import './contrib/encryption/electron-browser/encryption.contribution.js';
+
+// TaxCode
+import './contrib/taxcode/electron-browser/taxCode.contribution.js';
 
 // Modern UI
 import './contrib/modernUI/electron-browser/frostedGlass.contribution.js';

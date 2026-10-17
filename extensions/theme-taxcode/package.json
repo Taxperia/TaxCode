@@ -1,0 +1,40 @@
+{
+	"name": "theme-taxcode",
+	"displayName": "%displayName%",
+	"description": "%description%",
+	"version": "1.0.0",
+	"publisher": "taxperia",
+	"license": "MIT",
+	"engines": {
+		"vscode": "*"
+	},
+	"categories": [
+		"Themes"
+	],
+	"contributes": {
+		"themes": [
+			{
+				"id": "TaxCode Purple",
+				"label": "%purpleThemeLabel%",
+				"uiTheme": "vs-dark",
+				"path": "./themes/taxcode-purple-color-theme.json"
+			},
+			{
+				"id": "TaxCode GitHub Dark",
+				"label": "%githubDarkThemeLabel%",
+				"uiTheme": "vs-dark",
+				"path": "./themes/taxcode-github-dark-color-theme.json"
+			},
+			{
+				"id": "TaxCode GitHub Light",
+				"label": "%githubLightThemeLabel%",
+				"uiTheme": "vs",
+				"path": "./themes/taxcode-github-light-color-theme.json"
+			}
+		]
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Taxperia/TaxCode.git"
+	}
+}

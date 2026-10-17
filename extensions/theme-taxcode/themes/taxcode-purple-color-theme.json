@@ -1,0 +1,113 @@
+{
+	"name": "TaxCode Purple",
+	"type": "dark",
+	"semanticHighlighting": true,
+	"colors": {
+		"focusBorder": "#B77CFFFF",
+		"foreground": "#E8DCF7FF",
+		"descriptionForeground": "#BFA9D6FF",
+		"errorForeground": "#FF6B8AFF",
+		"textLink.foreground": "#C69CFFFF",
+		"textLink.activeForeground": "#E0C3FFFF",
+		"button.background": "#7C3AEDFF",
+		"button.foreground": "#FFFFFFFF",
+		"button.hoverBackground": "#9257F3FF",
+		"dropdown.background": "#211131FF",
+		"dropdown.border": "#4A2A66FF",
+		"input.background": "#140A20FF",
+		"input.border": "#4A2A66FF",
+		"input.foreground": "#F4ECFFFF",
+		"input.placeholderForeground": "#947AAEFF",
+		"badge.background": "#8B5CF6FF",
+		"badge.foreground": "#FFFFFFFF",
+		"activityBar.background": "#100719FF",
+		"activityBar.foreground": "#E9D5FFFF",
+		"activityBar.inactiveForeground": "#8F79A8FF",
+		"activityBarBadge.background": "#A855F7FF",
+		"activityBarBadge.foreground": "#FFFFFFFF",
+		"sideBar.background": "#160B26FF",
+		"sideBar.foreground": "#D8C5EAFF",
+		"sideBar.border": "#2A153DFF",
+		"sideBarTitle.foreground": "#F2E8FFFF",
+		"sideBarSectionHeader.background": "#20102FFF",
+		"editorGroupHeader.tabsBackground": "#100719FF",
+		"tab.activeBackground": "#1D0E2CFF",
+		"tab.activeForeground": "#FFFFFFFF",
+		"tab.inactiveBackground": "#100719FF",
+		"tab.inactiveForeground": "#9F8AB7FF",
+		"tab.activeBorderTop": "#B77CFFFF",
+		"editor.background": "#1D0E2CFF",
+		"editor.foreground": "#E8DCF7FF",
+		"editorLineNumber.foreground": "#705C86FF",
+		"editorLineNumber.activeForeground": "#D8B4FEFF",
+		"editorCursor.foreground": "#D8B4FEFF",
+		"editor.selectionBackground": "#6D28D966",
+		"editor.inactiveSelectionBackground": "#4C1D9566",
+		"editor.lineHighlightBackground": "#2A153D99",
+		"editorIndentGuide.background1": "#3C2252FF",
+		"editorIndentGuide.activeBackground1": "#8B5CF6FF",
+		"editorWhitespace.foreground": "#4A2A66FF",
+		"editor.findMatchBackground": "#F59E0B55",
+		"editor.findMatchBorder": "#FBBF24FF",
+		"editorWidget.background": "#211131FF",
+		"editorWidget.border": "#5B3478FF",
+		"peekView.border": "#8B5CF6FF",
+		"peekViewEditor.background": "#180C25FF",
+		"peekViewResult.background": "#140A20FF",
+		"panel.background": "#140A20FF",
+		"panel.border": "#3C2252FF",
+		"terminal.background": "#140A20FF",
+		"terminal.foreground": "#E8DCF7FF",
+		"terminal.ansiBlue": "#7AA2F7FF",
+		"terminal.ansiCyan": "#67E8F9FF",
+		"terminal.ansiGreen": "#86EFACFF",
+		"terminal.ansiMagenta": "#D8B4FEFF",
+		"terminal.ansiRed": "#FB7185FF",
+		"terminal.ansiYellow": "#FCD34DFF",
+		"statusBar.background": "#5B21B6FF",
+		"statusBar.foreground": "#FFFFFFFF",
+		"statusBar.noFolderBackground": "#3B176EFF",
+		"titleBar.activeBackground": "#100719FF",
+		"titleBar.activeForeground": "#F5EEFFFF",
+		"titleBar.inactiveBackground": "#100719FF",
+		"titleBar.inactiveForeground": "#8F79A8FF",
+		"menu.background": "#211131FF",
+		"menu.foreground": "#E8DCF7FF",
+		"menu.selectionBackground": "#6D28D9AA",
+		"list.activeSelectionBackground": "#5B21B6AA",
+		"list.activeSelectionForeground": "#FFFFFFFF",
+		"list.hoverBackground": "#2A153DFF",
+		"scrollbarSlider.background": "#8B5CF644",
+		"scrollbarSlider.hoverBackground": "#A78BFA77"
+	},
+	"tokenColors": [
+		{
+			"scope": ["comment", "punctuation.definition.comment"],
+			"settings": { "foreground": "#8B78A0", "fontStyle": "italic" }
+		},
+		{
+			"scope": ["keyword", "storage", "storage.type"],
+			"settings": { "foreground": "#C084FC" }
+		},
+		{
+			"scope": ["string", "string.quoted"],
+			"settings": { "foreground": "#A7F3D0" }
+		},
+		{
+			"scope": ["constant.numeric", "constant.language", "constant.character"],
+			"settings": { "foreground": "#F9A8D4" }
+		},
+		{
+			"scope": ["entity.name.function", "support.function"],
+			"settings": { "foreground": "#93C5FD" }
+		},
+		{
+			"scope": ["entity.name.type", "support.type", "support.class"],
+			"settings": { "foreground": "#FDE68A" }
+		},
+		{
+			"scope": ["variable", "meta.definition.variable.name"],
+			"settings": { "foreground": "#E9D5FF" }
+		}
+	]
+}

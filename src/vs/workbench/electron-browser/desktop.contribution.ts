@@ -465,6 +465,11 @@ import product from '../../platform/product/common/product.js';
 			'js-flags': {
 				type: 'string',
 				description: localize('argv.jsFlags', "Specifies V8 JavaScript engine flags to pass (e.g. \"--max-old-space-size=4096\"). These flags are applied to the main process, renderer and utility processes.")
+			},
+			'taxcode-memory-limit': {
+				type: 'integer',
+				enum: [256, 512, 768, 1024],
+				markdownDescription: localize('argv.taxCodeMemoryLimit', "Limits the JavaScript heap size in megabytes for TaxCode Lite. Use the **TaxCode: Set RAM Limit** command to change this safely. A restart is required.")
 			}
 		}
 	};

@@ -104,7 +104,10 @@ export interface IProductConfiguration {
 	readonly taxCodeProfile?: 'plugins' | 'no-extensions' | 'low-memory';
 	readonly taxCodeExtensionsEnabled?: boolean;
 	readonly taxCodeLowMemoryMode?: boolean;
+	readonly taxCodeDisableAuthentication?: boolean;
+	readonly taxCodeAllowedSystemExtensions?: readonly string[];
 	readonly taxCodeDefaultMaxOldSpaceSize?: number;
+	readonly taxCodeMemoryLimitOptions?: readonly number[];
 	readonly taxCodeDisableHardwareAcceleration?: boolean;
 	readonly taxCodeUpdateManifestUrl?: string;
 

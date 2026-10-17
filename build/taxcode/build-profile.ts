@@ -6,8 +6,9 @@
 import * as cp from 'child_process';
 import * as path from 'path';
 import packageConfiguration from '../../package.json' with { type: 'json' };
-import { isTaxCodeBuildProfileName, taxCodeBuildProfileNames, type TaxCodeBuildProfileName } from './profile.ts';
+import { getTaxCodeBuildFolderName, getTaxCodeBuildProfile, isTaxCodeBuildProfileName, taxCodeBuildProfileNames, type TaxCodeBuildProfileName } from './profile.ts';
 import { stageTaxCodeInstaller, writeTaxCodeUpdateManifestIfComplete } from './update-manifest.ts';
+import { stripPortableExecutableSignature } from './pe-signature.ts';
 
 const root = path.dirname(path.dirname(import.meta.dirname));
 
@@ -39,6 +40,9 @@ const createSetup = process.argv.includes('--setup');
 const runBuild = (profile: TaxCodeBuildProfileName) => {
 	runGulpTask(profile, 'vscode-win32-x64-min');
 	if (createSetup) {
+		const profileConfiguration = getTaxCodeBuildProfile({ TAXCODE_BUILD_PROFILE: profile });
+		const executablePath = path.join(path.dirname(root), getTaxCodeBuildFolderName('win32', 'x64', profileConfiguration), `${profileConfiguration.product.nameShort}.exe`);
+		stripPortableExecutableSignature(executablePath);
 		runGulpTask(profile, 'vscode-win32-x64-inno-updater');
 		runGulpTask(profile, 'vscode-win32-x64-user-setup');
 		const installer = stageTaxCodeInstaller(root, profile, packageConfiguration.version);

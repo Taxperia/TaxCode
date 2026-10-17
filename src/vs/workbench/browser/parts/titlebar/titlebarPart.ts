@@ -58,6 +58,7 @@ import { safeIntl } from '../../../../base/common/date.js';
 import { IsCompactTitleBarContext, TitleBarVisibleContext } from '../../../common/contextkeys.js';
 import { ServiceCollection } from '../../../../platform/instantiation/common/serviceCollection.js';
 import { WORKBENCH_MENU_MOTION_CLASS, workbenchMenuCloseAnimation } from '../../actions/menuMotion.js';
+import product from '../../../../platform/product/common/product.js';
 
 export interface ITitleVariable {
 	readonly name: string;
@@ -430,6 +431,7 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 		this.menubar.setAttribute('role', 'menubar');
 
 		this.customMenubarDisposables.add(customMenubar.onVisibilityChange(e => this.onMenubarVisibilityChanged(e)));
+		this.customMenubarDisposables.add(customMenubar.onFocusStateChange(focused => this.element.classList.toggle('menubar-focused', focused)));
 
 		customMenubar.create(this.menubar);
 	}
@@ -437,6 +439,7 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 	private uninstallMenubar(): void {
 		this.customMenubarDisposables.clear();
 		this.customMenubar.clear();
+		this.element.classList.remove('menubar-focused');
 
 		this.menubar?.remove();
 		this.menubar = undefined;
@@ -765,7 +768,7 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 
 			// --- Activity Actions (always at the end)
 			if (this.activityActionsEnabled) {
-				if (isAccountsActionVisible(this.storageService)) {
+				if (!product.taxCodeDisableAuthentication && isAccountsActionVisible(this.storageService)) {
 					actions.primary.push(ACCOUNTS_ACTIVITY_TILE_ACTION);
 				}
 

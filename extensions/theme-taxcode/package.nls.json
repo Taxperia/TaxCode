@@ -1,0 +1,7 @@
+{
+	"displayName": "TaxCode Themes",
+	"description": "Built-in purple and GitHub-inspired themes for TaxCode.",
+	"purpleThemeLabel": "TaxCode Purple",
+	"githubDarkThemeLabel": "TaxCode GitHub Dark",
+	"githubLightThemeLabel": "TaxCode GitHub Light"
+}

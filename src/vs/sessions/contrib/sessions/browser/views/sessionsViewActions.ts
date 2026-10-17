@@ -14,12 +14,10 @@ import { hasKey } from '../../../../../base/common/types.js';
 import { localize, localize2 } from '../../../../../nls.js';
 import { IAccessibilityService } from '../../../../../platform/accessibility/common/accessibility.js';
 import { AccessibilitySignal, IAccessibilitySignalService } from '../../../../../platform/accessibilitySignal/browser/accessibilitySignalService.js';
-import { Categories } from '../../../../../platform/action/common/actionCommonCategories.js';
 import { Action2, MenuId, MenuRegistry, registerAction2 } from '../../../../../platform/actions/common/actions.js';
 import { CommandsRegistry, ICommandService } from '../../../../../platform/commands/common/commands.js';
 import { ConfigurationTarget, IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { ContextKeyExpr, IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
-import { IsDevelopmentContext } from '../../../../../platform/contextkey/common/contextkeys.js';
 import { IDialogService } from '../../../../../platform/dialogs/common/dialogs.js';
 import { ServicesAccessor } from '../../../../../platform/instantiation/common/instantiation.js';
 import { IQuickInputService } from '../../../../../platform/quickinput/common/quickInput.js';
@@ -49,7 +47,6 @@ import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase 
 import { registerExternalSessionsFilterMenu } from '../../../../../workbench/contrib/chat/browser/agentSessions/externalSessionsFilterMenu.js';
 import { ICustomViewService } from '../../../../services/customView/browser/customViewService.js';
 import { IAutomationService } from '../../../../../workbench/contrib/chat/common/automations/automationService.js';
-import { ChatAutomationsEnabledContext } from '../../../../../workbench/contrib/chat/common/automations/automationsEnabled.js';
 import { AUTOMATIONS_CUSTOM_VIEW_ID } from '../automationsConstants.js';
 import { UNIFIED_WORKSPACE_PICKER_SETTING } from '../../../chat/common/constants.js';
 import { INewSessionComposerService } from '../../../chat/browser/newSessionComposerService.js';
@@ -1526,6 +1523,40 @@ registerAction2(class OpenSessionToTheSideAction extends Action2 {
 	}
 });
 
+const openInGridWhen = ContextKeyExpr.and(IsSessionsWindowContext, ChatContextKeys.enabled, IsPhoneLayoutContext.negate());
+MenuRegistry.appendMenuItem(SessionItemContextMenuId, {
+	submenu: Menus.SessionGridOpen,
+	title: localize('openInGrid', "Open in Grid"),
+	group: '0_pin',
+	order: 2,
+	when: openInGridWhen,
+});
+
+for (const item of [
+	{ direction: 'left', title: localize2('openSessionLeft', "Left of Active Session") },
+	{ direction: 'right', title: localize2('openSessionRight', "Right of Active Session") },
+	{ direction: 'up', title: localize2('openSessionAbove', "Above Active Session") },
+	{ direction: 'down', title: localize2('openSessionBelow', "Below Active Session") },
+] as const) {
+	registerAction2(class extends Action2 {
+		constructor() {
+			super({
+				id: `sessionsViewPane.openInGrid.${item.direction}`,
+				title: item.title,
+				precondition: openInGridWhen,
+				menu: { id: Menus.SessionGridOpen },
+			});
+		}
+		async run(accessor: ServicesAccessor, context?: ISession | ISession[]): Promise<void> {
+			if (!context) {
+				return;
+			}
+			const service = accessor.get(ISessionsService);
+			await service.openSessionsAt(Array.isArray(context) ? context : [context], service.activeSession.get()?.sessionId, item.direction, { source: 'sessionsList', activate: 'last' });
+		}
+	});
+}
+
 registerAction2(class MarkAllSessionsReadAction extends Action2 {
 	constructor() {
 		super({
@@ -1656,23 +1687,6 @@ registerAction2(class ManageAutomationsAction extends Action2 {
 	}
 	override run(accessor: ServicesAccessor): void {
 		accessor.get(ICustomViewService).showCustomView(AUTOMATIONS_CUSTOM_VIEW_ID);
-	}
-});
-
-registerAction2(class ResetAutomationsNewBadgeAction extends Action2 {
-	constructor() {
-		super({
-			id: 'sessions.developer.resetAutomationsNewBadge',
-			title: localize2('resetAutomationsNewBadge', "Reset Automations New Badge"),
-			category: Categories.Developer,
-			f1: true,
-			precondition: ContextKeyExpr.and(IsDevelopmentContext, IsSessionsWindowContext, ChatAutomationsEnabledContext),
-		});
-	}
-
-	override async run(accessor: ServicesAccessor): Promise<void> {
-		const view = await accessor.get(IViewsService).openView<SessionsView>(SessionsViewId, false);
-		await view?.sessionsControl?.resetAutomationsNewBadge();
 	}
 });
 

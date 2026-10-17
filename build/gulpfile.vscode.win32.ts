@@ -16,6 +16,7 @@ import * as task from './lib/gulp/task.ts';
 import * as util from './lib/util.ts';
 import { applyTaxCodeBuildProfile, getTaxCodeBuildFolderName, getTaxCodeBuildProfile } from './taxcode/profile.ts';
 import { ensureTaxCodeWindowsBrandAssets } from './taxcode/branding.ts';
+import { stripPortableExecutableSignature } from './taxcode/pe-signature.ts';
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -75,6 +76,9 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 		const outputPath = setupDir(arch, target);
 		fs.mkdirSync(outputPath, { recursive: true });
 		ensureTaxCodeWindowsBrandAssets(repoPath);
+		// A unique intermediate name avoids real-time scanners briefly locking the
+		// generic VSCodeSetup.exe while Inno Setup is still updating its resources.
+		const setupOutputBaseFilename = `TaxCodeSetup-${taxCodeProfile.name}-${process.pid}`;
 
 		const quality = (product as typeof product & { quality?: string }).quality || 'dev';
 		const useVersionedUpdate = (product as typeof product & { win32VersionedUpdate?: boolean })?.win32VersionedUpdate;
@@ -128,7 +132,29 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 
 		fs.writeFileSync(productJsonPath, JSON.stringify(productJson, undefined, '\t'));
 
-		packageInnoSetup(issPath, { definitions }, cb as (err?: Error | null) => void);
+		const compileSetup = (attempt: number): void => {
+			const attemptOutputBaseFilename = `${setupOutputBaseFilename}-${attempt}`;
+			definitions['SetupOutputBaseFilename'] = attemptOutputBaseFilename;
+			packageInnoSetup(issPath, { definitions }, error => {
+				if (error && attempt < 4) {
+					fs.rmSync(path.join(outputPath, `${attemptOutputBaseFilename}.exe`), { force: true });
+					setTimeout(() => compileSetup(attempt + 1), 3000);
+					return;
+				}
+				if (error) {
+					cb(error);
+					return;
+				}
+
+				try {
+					fs.renameSync(path.join(outputPath, `${attemptOutputBaseFilename}.exe`), path.join(outputPath, 'VSCodeSetup.exe'));
+					cb(null);
+				} catch (renameError) {
+					cb(renameError as Error);
+				}
+			});
+		};
+		compileSetup(1);
 	};
 }
 
@@ -152,6 +178,12 @@ function copyInnoUpdater(arch: string) {
 function updateIcon(executablePath: string): task.CallbackTask {
 	return cb => {
 		const icon = path.join(repoPath, 'taxcode.ico');
+		try {
+			stripPortableExecutableSignature(executablePath);
+		} catch (error) {
+			cb(error as Error);
+			return;
+		}
 		rcedit(executablePath, { icon }, cb);
 	};
 }

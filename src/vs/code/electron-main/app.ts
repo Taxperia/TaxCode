@@ -764,9 +764,12 @@ export class CodeApplication extends Disposable {
 		// request. The renderer only requests a connection when the runtime is
 		// available and AI features are enabled there, which the main process
 		// cannot fully observe.
-		const agentHostStarter = appInstantiationService.createInstance(ElectronAgentHostStarter, { machineId, sqmId, devDeviceId });
-		// This manager self-disposes after its lifecycle join; CodeApplication disposes before later shutdown listeners run.
-		const agentHostProcessManager = appInstantiationService.createInstance(AgentHostProcessManager, agentHostStarter, process.platform);
+		let agentHostProcessManager: AgentHostProcessManager | undefined;
+		if (!this.productService.taxCodeDisableAuthentication) {
+			const agentHostStarter = appInstantiationService.createInstance(ElectronAgentHostStarter, { machineId, sqmId, devDeviceId });
+			// This manager self-disposes after its lifecycle join; CodeApplication disposes before later shutdown listeners run.
+			agentHostProcessManager = appInstantiationService.createInstance(AgentHostProcessManager, agentHostStarter, process.platform);
+		}
 
 		// Metered connection telemetry
 		appInstantiationService.invokeFunction(accessor => {
@@ -810,7 +813,7 @@ export class CodeApplication extends Disposable {
 				...windows.map(window => window.ready()),
 				sharedProcessReady,
 				appInstantiationService.invokeFunction(accessor => accessor.get(ILocalPtyService).getLatency()),
-				agentHostProcessManager.start()
+				...(agentHostProcessManager ? [agentHostProcessManager.start()] : [])
 			]);
 		}
 
@@ -1456,7 +1459,8 @@ export class CodeApplication extends Disposable {
 				// This event has main-process consumers but no IPC consumer, so its buffer would never drain.
 				'onDidBlurMainWindow',
 				// GPU subscribers read current state explicitly; do not replay obsolete capabilities.
-				'onDidChangeGPUCompositing'
+				'onDidChangeGPUCompositing',
+				'onDidProgressZipFile'
 			]
 		});
 		mainProcessElectronServer.registerChannel('nativeHost', nativeHostChannel);
@@ -1852,7 +1856,13 @@ export class CodeApplication extends Disposable {
 					`	"crash-reporter-id": "${generateUuid()}"`,
 					'}'
 				];
-				const newArgvString = argvString.substring(0, argvString.length - 2).concat(',\n', additionalArgvContent.join('\n'));
+				const closingBraceIndex = argvString.lastIndexOf('}');
+				if (closingBraceIndex < 0) {
+					throw new Error('Invalid argv.json: missing closing brace.');
+				}
+				const argvObjectContent = argvString.substring(0, closingBraceIndex).trimEnd();
+				const separator = argvObjectContent.endsWith('{') ? '\n' : ',\n';
+				const newArgvString = argvObjectContent.concat(separator, additionalArgvContent.join('\n'));
 
 				await this.fileService.writeFile(this.environmentMainService.argvResource, VSBuffer.fromString(newArgvString));
 			}

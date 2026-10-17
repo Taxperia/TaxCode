@@ -11,7 +11,10 @@ export interface ITaxCodeProductConfiguration {
 	readonly taxCodeProfile: TaxCodeBuildProfileName;
 	readonly taxCodeExtensionsEnabled: boolean;
 	readonly taxCodeLowMemoryMode: boolean;
+	readonly taxCodeDisableAuthentication: boolean;
+	readonly taxCodeAllowedSystemExtensions?: readonly string[];
 	readonly taxCodeDefaultMaxOldSpaceSize?: number;
+	readonly taxCodeMemoryLimitOptions?: readonly number[];
 	readonly taxCodeDisableHardwareAcceleration?: boolean;
 }
 
@@ -77,13 +80,14 @@ const profiles: Readonly<Record<TaxCodeBuildProfileName, ITaxCodeBuildProfile>> 
 			taxCodeProfile: 'plugins',
 			taxCodeExtensionsEnabled: true,
 			taxCodeLowMemoryMode: false,
+			taxCodeDisableAuthentication: false,
 		},
 	},
 	'no-extensions': {
 		name: 'no-extensions',
 		artifactName: 'TaxCode-no-extensions',
 		includeExtensions: false,
-		removeProductProperties: ['extensionsGallery'],
+		removeProductProperties: ['extensionsGallery', 'trustedExtensionAuthAccess', 'voiceWsUrl', 'sessionsWindowAllowedExtensions', 'agentsTelemetryAppName'],
 		product: {
 			...commonProduct,
 			nameShort: 'TaxCode No Extensions',
@@ -115,13 +119,15 @@ const profiles: Readonly<Record<TaxCodeBuildProfileName, ITaxCodeBuildProfile>> 
 			taxCodeProfile: 'no-extensions',
 			taxCodeExtensionsEnabled: false,
 			taxCodeLowMemoryMode: false,
+			taxCodeDisableAuthentication: true,
+			taxCodeAllowedSystemExtensions: ['taxperia.theme-taxcode'],
 		},
 	},
 	'low-memory': {
 		name: 'low-memory',
 		artifactName: 'TaxCode-low-memory',
 		includeExtensions: false,
-		removeProductProperties: ['extensionsGallery'],
+		removeProductProperties: ['extensionsGallery', 'trustedExtensionAuthAccess', 'voiceWsUrl', 'sessionsWindowAllowedExtensions', 'agentsTelemetryAppName'],
 		product: {
 			...commonProduct,
 			nameShort: 'TaxCode Lite',
@@ -153,7 +159,10 @@ const profiles: Readonly<Record<TaxCodeBuildProfileName, ITaxCodeBuildProfile>> 
 			taxCodeProfile: 'low-memory',
 			taxCodeExtensionsEnabled: false,
 			taxCodeLowMemoryMode: true,
+			taxCodeDisableAuthentication: true,
+			taxCodeAllowedSystemExtensions: ['taxperia.theme-taxcode'],
 			taxCodeDefaultMaxOldSpaceSize: 512,
+			taxCodeMemoryLimitOptions: [256, 512, 768, 1024],
 			taxCodeDisableHardwareAcceleration: true,
 		},
 	},

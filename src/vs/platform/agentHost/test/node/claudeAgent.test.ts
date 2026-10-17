@@ -48,6 +48,7 @@ import { INativeEnvironmentService } from '../../../environment/common/environme
 import { AgentChatMigrationDeferred, IActiveClient, IAgent, IAgentChatContext, IAgentChatDataChange, IAgentChatMetadata, IAgentCreateChatOptions, IAgentCreateChatResult, IAgentCreateSessionConfig, IAgentCreateSessionResult, IAgentMaterializeChatEvent, IAgentSpawnChatEvent, AgentSession, AgentSignal, GITHUB_COPILOT_PROTECTED_RESOURCE } from '../../common/agent.js';
 import { AgentHostAutoApprovePolicyRestrictedConfigKey, AgentHostClaudeMultiRootEnabledConfigKey, AgentHostGitHubMcpServerEnabledConfigKey } from '../../common/agentHostSchema.js';
 import { AgentHostConfigKey } from '../../common/agentHostCustomizationConfig.js';
+import { SessionConfigKey } from '../../common/sessionConfigKeys.js';
 import { AgentFeedbackAttachmentDisplayKind } from '../../common/meta/agentFeedbackAttachments.js';
 import { ChatInputRequestPurpose, readChatInputRequestPurpose } from '../../common/meta/agentChatInputRequestMeta.js';
 import { toClientPluginMcpDefaultCwdsMeta } from '../../common/meta/clientPluginCustomizationMeta.js';
@@ -1073,6 +1074,7 @@ const ALL_MODELS: readonly CCAModel[] = [
  */
 class RecordingOTelService implements IAgentHostOTelService {
 	readonly _serviceBrand: undefined;
+	readonly enabled = false;
 	readonly diagnosticsEnabled = false;
 	emitTurnTiming(): void { }
 	emitFirstResponse(): void { }
@@ -2605,6 +2607,19 @@ suite('ClaudeAgent', () => {
 			session: expected.toString(),
 			provisional: true,
 		});
+	});
+
+	test('standard host sessions retain their address and an independent Claude backing ID', async () => {
+		const { agent } = createTestContext(disposables);
+		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'tok');
+		const session = URI.parse('ahp-session:/new-claude');
+		const result = await createSession(agent, { session, workingDirectories: [URI.file('/work')] });
+		assert.deepStrictEqual({
+			session: result.session.toString(),
+			provisional: result.provisional,
+			backingProvider: result.chat?.backingSession?.scheme,
+			separateBacking: result.sdkSessionId !== AgentSession.id(session),
+		}, { session: session.toString(), provisional: true, backingProvider: 'claude', separateBacking: true });
 	});
 
 	test('createChat({ fork }) forks at the anchor uuid, then materializes lazily on first sendMessage', async () => {
@@ -5650,7 +5665,8 @@ suite('ClaudeAgent', () => {
 		// Tested keys: presence + ordering of enum + the five-value
 		// canonical set (matching SDK `PermissionMode` typedef at
 		// `sdk.d.ts:1560`, excluding `dontAsk`, ratified in Phase 6.1 Cycle A
-		// under I2) + default. Skipped keys (AutoApprove, Mode, Isolation,
+		// under I2) + default. Sensitive edit locations are platform-owned
+		// transient config and remain hidden from the picker. Skipped keys (AutoApprove, Mode, Isolation,
 		// Branch, BranchNameHint) MUST be absent — workbench
 		// `AgentHostModePicker` and friends key off these property names
 		// to decide what to render, and accidentally re-introducing
@@ -5674,7 +5690,7 @@ suite('ClaudeAgent', () => {
 			branchAbsent: properties['branch'] === undefined,
 		}, {
 			topLevelType: 'object',
-			propertyKeys: ['permissionMode', 'permissions'],
+			propertyKeys: ['permissionMode', 'permissions', SessionConfigKey.SensitiveEditLocations].sort(),
 			permissionModeType: 'string',
 			permissionModeEnum: ['default', 'acceptEdits', 'plan', 'auto', 'bypassPermissions'],
 			permissionModeDefault: 'default',
@@ -7214,10 +7230,10 @@ suite('ClaudeAgent (Phase 7 §3.4 — _handleCanUseTool)', () => {
 		}, {
 			result: { behavior: 'allow', updatedInput: input },
 			confirmation: {
-				displayName: 'Set Workspace',
-				invocationMessage: 'Continue this session in /workspace/app with changes isolated from the existing folder?',
+				displayName: 'Change Workspace',
+				invocationMessage: 'Change this chat\'s workspace to a new worktree of /workspace/app? Other chats keep their workspaces.',
 				toolInput: undefined,
-				confirmationTitle: 'Continue in app?',
+				confirmationTitle: 'Change Workspace to app?',
 				permissionKind: 'mcp',
 			},
 		});

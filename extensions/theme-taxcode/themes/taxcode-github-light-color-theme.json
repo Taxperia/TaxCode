@@ -1,0 +1,101 @@
+{
+	"name": "TaxCode GitHub Light",
+	"type": "light",
+	"semanticHighlighting": true,
+	"colors": {
+		"focusBorder": "#0969DAFF",
+		"foreground": "#24292FFF",
+		"descriptionForeground": "#57606AFF",
+		"errorForeground": "#CF222EFF",
+		"textLink.foreground": "#0969DAFF",
+		"button.background": "#2DA44EFF",
+		"button.foreground": "#FFFFFFFF",
+		"button.hoverBackground": "#2C974BFF",
+		"dropdown.background": "#FFFFFFFF",
+		"dropdown.border": "#D0D7DEFF",
+		"input.background": "#FFFFFFFF",
+		"input.border": "#D0D7DEFF",
+		"input.foreground": "#24292FFF",
+		"badge.background": "#0969DAFF",
+		"badge.foreground": "#FFFFFFFF",
+		"activityBar.background": "#F6F8FAFF",
+		"activityBar.foreground": "#24292FFF",
+		"activityBar.inactiveForeground": "#6E7781FF",
+		"activityBarBadge.background": "#0969DAFF",
+		"activityBarBadge.foreground": "#FFFFFFFF",
+		"sideBar.background": "#F6F8FAFF",
+		"sideBar.foreground": "#24292FFF",
+		"sideBar.border": "#D0D7DEFF",
+		"sideBarSectionHeader.background": "#EAEEF2FF",
+		"editorGroupHeader.tabsBackground": "#F6F8FAFF",
+		"tab.activeBackground": "#FFFFFFFF",
+		"tab.activeForeground": "#24292FFF",
+		"tab.inactiveBackground": "#F6F8FAFF",
+		"tab.inactiveForeground": "#57606AFF",
+		"tab.activeBorderTop": "#FD8C73FF",
+		"editor.background": "#FFFFFFFF",
+		"editor.foreground": "#24292FFF",
+		"editorLineNumber.foreground": "#8C959FFF",
+		"editorLineNumber.activeForeground": "#24292FFF",
+		"editorCursor.foreground": "#0969DAFF",
+		"editor.selectionBackground": "#54AEFF55",
+		"editor.inactiveSelectionBackground": "#DDF4FFAA",
+		"editor.lineHighlightBackground": "#F6F8FAFF",
+		"editorIndentGuide.background1": "#D8DEE4FF",
+		"editorIndentGuide.activeBackground1": "#8C959FFF",
+		"editor.findMatchBackground": "#FFF8C5FF",
+		"editor.findMatchBorder": "#BF8700FF",
+		"editorWidget.background": "#FFFFFFFF",
+		"editorWidget.border": "#D0D7DEFF",
+		"panel.background": "#FFFFFFFF",
+		"panel.border": "#D0D7DEFF",
+		"terminal.background": "#FFFFFFFF",
+		"terminal.foreground": "#24292FFF",
+		"statusBar.background": "#F6F8FAFF",
+		"statusBar.foreground": "#24292FFF",
+		"statusBar.border": "#D0D7DEFF",
+		"titleBar.activeBackground": "#F6F8FAFF",
+		"titleBar.activeForeground": "#24292FFF",
+		"titleBar.inactiveBackground": "#F6F8FAFF",
+		"titleBar.inactiveForeground": "#8C959FFF",
+		"menu.background": "#FFFFFFFF",
+		"menu.foreground": "#24292FFF",
+		"menu.selectionBackground": "#0969DAFF",
+		"menu.selectionForeground": "#FFFFFFFF",
+		"list.activeSelectionBackground": "#0969DA33",
+		"list.activeSelectionForeground": "#24292FFF",
+		"list.hoverBackground": "#F6F8FAFF",
+		"scrollbarSlider.background": "#8C959F55",
+		"scrollbarSlider.hoverBackground": "#6E778177"
+	},
+	"tokenColors": [
+		{
+			"scope": ["comment", "punctuation.definition.comment"],
+			"settings": { "foreground": "#6E7781", "fontStyle": "italic" }
+		},
+		{
+			"scope": ["keyword", "storage", "storage.type"],
+			"settings": { "foreground": "#CF222E" }
+		},
+		{
+			"scope": ["string", "string.quoted"],
+			"settings": { "foreground": "#0A3069" }
+		},
+		{
+			"scope": ["constant.numeric", "constant.language", "constant.character"],
+			"settings": { "foreground": "#0550AE" }
+		},
+		{
+			"scope": ["entity.name.function", "support.function"],
+			"settings": { "foreground": "#8250D0" }
+		},
+		{
+			"scope": ["entity.name.type", "support.type", "support.class"],
+			"settings": { "foreground": "#953800" }
+		},
+		{
+			"scope": ["variable", "meta.definition.variable.name"],
+			"settings": { "foreground": "#953800" }
+		}
+	]
+}

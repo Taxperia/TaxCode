@@ -48,6 +48,7 @@
 	"taxCodeProfile": "plugins",
 	"taxCodeExtensionsEnabled": true,
 	"taxCodeLowMemoryMode": false,
+	"taxCodeDisableAuthentication": false,
 	"builtInExtensions": [
 		{
 			"name": "ms-vscode.js-debug-companion",

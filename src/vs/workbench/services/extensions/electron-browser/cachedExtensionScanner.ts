@@ -53,7 +53,15 @@ export class CachedExtensionScanner {
 
 	private async _scanInstalledExtensions(): Promise<IExtensionDescription[]> {
 		if (this._productService.taxCodeExtensionsEnabled === false) {
-			return [];
+			const allowedSystemExtensions = new Set(this._productService.taxCodeAllowedSystemExtensions?.map(id => id.toLowerCase()));
+			if (allowedSystemExtensions.size === 0) {
+				return [];
+			}
+
+			const systemExtensions = await this._extensionsScannerService.scanSystemExtensions({ language: platform.language, checkControlFile: true });
+			return systemExtensions
+				.filter(extension => allowedSystemExtensions.has(extension.identifier.id.toLowerCase()))
+				.map(extension => toExtensionDescriptionFromScannedExtension(extension, false));
 		}
 
 		try {

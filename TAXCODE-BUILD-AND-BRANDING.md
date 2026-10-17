@@ -5,8 +5,8 @@ Bu kaynak ağacı üç bağımsız Windows x64 ürünü üretir. Üçü de telem
 | Profil | Uygulama adı | Uzantılar | Temel davranış | Çıktı klasörü |
 | --- | --- | --- | --- | --- |
 | `plugins` | TaxCode | Açık; Open VSX galerisi etkin | Dil, Git ve debug uzantıları dahil | `../TaxCode-plugins-win32-x64` |
-| `no-extensions` | TaxCode No Extensions | Paketlenmez ve uzantı hostu başlatılmaz | Sade editör | `../TaxCode-no-extensions-win32-x64` |
-| `low-memory` | TaxCode Lite | Paketlenmez ve uzantı hostu başlatılmaz | GPU kapalı, deneyler kapalı, V8 üst sınırı 512 MB | `../TaxCode-low-memory-win32-x64` |
+| `no-extensions` | TaxCode No Extensions | Yalnızca yerleşik TaxCode temaları yüklenir; uzantı hostu başlatılmaz | Hesap/oturum açma yüzeyleri olmayan sade editör | `../TaxCode-no-extensions-win32-x64` |
+| `low-memory` | TaxCode Lite | Yalnızca yerleşik TaxCode temaları yüklenir; uzantı hostu başlatılmaz | Hesapsız, GPU kapalı, deneyler kapalı, seçilebilir V8 sınırı | `../TaxCode-low-memory-win32-x64` |
 
 Profillerin uygulama kimlikleri, protokolleri ve veri klasörleri farklıdır. Bu nedenle aynı Windows kurulumunda yan yana çalışabilirler.
 
@@ -61,7 +61,7 @@ TaxCode-<sürüm>-LowMemory-UserSetup-x64.exe
 taxcode-update.json
 ```
 
-Release etiketi `taxcode-v<sürüm>` biçiminde olmalıdır; örneğin `taxcode-v1.141.0`. Manifest her profil için doğru kurulum dosyasının GitHub adresini ve SHA-256 özetini içerir. Uygulama yalnızca `github.com/Taxperia/TaxCode/releases/download/...` adreslerini kabul eder ve indirilen dosyayı çalıştırmadan önce özeti doğrular.
+Release etiketi `taxcode-v<sürüm>` biçiminde olmalıdır; örneğin `taxcode-v1.142.0`. Manifest her profil için doğru kurulum dosyasının GitHub adresini ve SHA-256 özetini içerir. Uygulama yalnızca `github.com/Taxperia/TaxCode/releases/download/...` adreslerini kabul eder ve indirilen dosyayı çalıştırmadan önce özeti doğrular.
 
 Bu güncelleyici kodunu içermeyen eski TaxCode sürümleri ilk kez elle kurulmalıdır. Bu sürüm kurulduktan sonra sonraki sürümler `Help > Check for Updates...` ve arka plan güncelleme akışıyla alınabilir.
 
@@ -113,14 +113,28 @@ Windows dışı paketler de hazırlanacaksa ilgili platformun doğal formatında
 
 Bu dosyalar Windows profil derlemelerinde kullanılmaz. ICO dosyasını doğrudan ICNS yerine koymayın; macOS için gerçek bir `.icns` dosyası üretin.
 
+## Yerleşik Temaları Değiştirme
+
+TaxCode'a eklenen yerleşik temalar `extensions/theme-taxcode` klasöründedir. Üç profil de bu paketteki saf renk temalarını okuyabilir; pluginsiz ve Lite profillerinde uzantı hostu yine başlatılmaz.
+
+| Tema | Dosya |
+| --- | --- |
+| TaxCode Purple | `extensions/theme-taxcode/themes/taxcode-purple-color-theme.json` |
+| TaxCode GitHub Dark | `extensions/theme-taxcode/themes/taxcode-github-dark-color-theme.json` |
+| TaxCode GitHub Light | `extensions/theme-taxcode/themes/taxcode-github-light-color-theme.json` |
+
+Tema adları ve paket açıklaması `extensions/theme-taxcode/package.nls.json` ile Türkçe karşılıkları `extensions/theme-taxcode/package.nls.tr.json` içindedir. Yeni tema eklerken tema JSON dosyasını oluşturup `extensions/theme-taxcode/package.json` içindeki `contributes.themes` listesine kaydedin.
+
 ## Profil Ayarlarını Değiştirme
 
 Üç profilin adları, Windows GUID'leri, veri klasörleri, bellek sınırı ve uzantı davranışı `build/taxcode/profile.ts` dosyasındadır. Ortak TaxCode geliştirme kimliği ise `product.json` içindedir.
 
-Lite bellek sınırını değiştirmek için `taxCodeDefaultMaxOldSpaceSize` değerini düzenleyin. Çok düşük bir değer büyük çalışma alanlarında sekmenin kapanmasına yol açabilir; mevcut 512 MB sınırı başlangıç noktasıdır.
+Lite bellek sınırını değiştirmek için Komut Paleti'nden **TaxCode: Set RAM Limit** komutunu çalıştırın. 256, 512, 768 ve 1024 MB seçenekleri `argv.json` içindeki `taxcode-memory-limit` alanına yazılır ve yeniden başlatmanın ardından uygulanır. Bu değer uygulamanın toplam RAM'ini değil, Electron/V8 JavaScript heap üst sınırını kontrol eder. Çok düşük bir değer büyük çalışma alanlarında sekmenin kapanmasına yol açabilir; mevcut 512 MB sınırı önerilen başlangıç noktasıdır.
+
+Varsayılanı veya seçenek listesini kaynakta değiştirmek için `build/taxcode/profile.ts` içindeki `taxCodeDefaultMaxOldSpaceSize` ve `taxCodeMemoryLimitOptions` alanlarını düzenleyin.
 
 Pluginli sürüm Open VSX kullanır. Microsoft Visual Studio Marketplace uç noktalarını bu forka eklemeyin; Microsoft Marketplace kullanım koşulları üçüncü taraf ürünlerde farklı kısıtlar uygulayabilir.
 
 GitHub Copilot, TaxCode paketine yerleşik olarak eklenmez. Bunun iki nedeni vardır: yerel OSS paketleme akışında SDK bağımlılıklarının güvenilir biçimde taşınmaması ve telemetrisiz genel dağıtımın bu hesaba bağlı uzantıdan bağımsız tutulması. Pluginli sürümün genel uzantı hostu ve Open VSX galerisi tam olarak açıktır.
 
-> Not: `defaultChatAgent` alanı yalnızca çekirdek workbench uyumluluğu için `product.json` içinde korunur. Bu alanın bulunması GitHub Copilot eklentisinin pakete dahil edildiği anlamına gelmez. Alan kaldırılırsa VS Code 1.141 çekirdeğindeki onboarding, varsayılan hesap ve galeri servisleri workbench açılmadan hata verebilir. TaxCode profillerinde otomatik AI onboarding ayrıca kapalıdır.
+> Not: `defaultChatAgent` alanı yalnızca çekirdek workbench uyumluluğu için `product.json` içinde korunur. Bu alanın bulunması GitHub Copilot eklentisinin pakete dahil edildiği anlamına gelmez. Alan kaldırılırsa VS Code 1.142 çekirdeğindeki onboarding, varsayılan hesap ve galeri servisleri workbench açılmadan hata verebilir. TaxCode profillerinde otomatik AI onboarding ayrıca kapalıdır.

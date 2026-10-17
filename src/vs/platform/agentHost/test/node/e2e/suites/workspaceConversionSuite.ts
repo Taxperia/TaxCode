@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import assert from 'assert';
-import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from '../../../../../../base/common/path.js';
 import { URI } from '../../../../../../base/common/uri.js';
@@ -18,6 +17,7 @@ import { buildDefaultChatUri, readSessionWorkspaceless, ROOT_STATE_URI, type Ses
 import { driveChatTurnToCompletion, getMarkdownResponseText, resolveGitHubToken } from '../harness/agentHostE2ETestHarness.js';
 import { getActionEnvelope, isActionNotification } from '../../serverIntegrationTestHelpers.js';
 import type { IAgentHostE2ETestContext } from './e2eTestContext.js';
+import { createTestDirectory } from '../harness/testDirectories.js';
 
 export function defineWorkspaceConversionTests(context: IAgentHostE2ETestContext): void {
 	if (context.tier !== 'parity' || context.config.provider === 'claude') {
@@ -27,7 +27,7 @@ export function defineWorkspaceConversionTests(context: IAgentHostE2ETestContext
 
 	test('workspace conversion: first prompt converts a workspaceless session', async function () {
 		this.timeout(180_000);
-		const workspace = mkdtempSync(join(tmpdir(), 'ahp-workspace-conversion-'));
+		const workspace = createTestDirectory(join(tmpdir(), 'ahp-workspace-conversion-'));
 		context.tempDirs.push(workspace);
 		context.client.setWorkingDirectory(workspace);
 		await context.client.call('initialize', {
@@ -116,14 +116,14 @@ export function defineWorkspaceConversionTests(context: IAgentHostE2ETestContext
 			setWorkspaceCalled,
 			workspaceless: readSessionWorkspaceless(state._meta),
 			workingDirectories: state.workingDirectories,
-			canAttachWorkspace: state.serverTools?.some(tool => tool.name === SessionServerToolName.SetWorkspace),
+			canChangeWorkspace: state.serverTools?.some(tool => tool.name === SessionServerToolName.SetWorkspace),
 			mentionsConversion: getMarkdownResponseText(context.client).toLowerCase().includes('converted'),
 		}, {
 			sawWorkspaceQuestion: true,
 			setWorkspaceCalled: true,
 			workspaceless: false,
 			workingDirectories: [workspaceUri],
-			canAttachWorkspace: false,
+			canChangeWorkspace: true,
 			mentionsConversion: true,
 		});
 		context.client.clearReceived();

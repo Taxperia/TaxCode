@@ -402,7 +402,7 @@ function configureCommandlineSwitchesSync(cliArgs: NativeParsedArgs) {
 }
 
 interface IArgvConfig {
-	[key: string]: string | string[] | boolean | undefined;
+	[key: string]: string | string[] | number | boolean | undefined;
 	readonly locale?: string;
 	readonly 'disable-lcd-text'?: boolean;
 	readonly 'proxy-bypass-list'?: string;
@@ -417,6 +417,7 @@ interface IArgvConfig {
 	readonly 'enable-rdp-display-tracking'?: boolean;
 	readonly 'remote-debugging-port'?: string;
 	readonly 'js-flags'?: string;
+	readonly 'taxcode-memory-limit'?: number;
 }
 
 function readArgvConfigSync(): IArgvConfig {
@@ -425,7 +426,15 @@ function readArgvConfigSync(): IArgvConfig {
 	const argvConfigPath = getArgvConfigPath();
 	let argvConfig: IArgvConfig | undefined = undefined;
 	try {
-		argvConfig = parse(fs.readFileSync(argvConfigPath).toString());
+		const argvConfigContent = fs.readFileSync(argvConfigPath).toString();
+		// TaxCode 1.142 development builds could leave a leading comma in an
+		// otherwise valid empty argv object. Repair that exact legacy shape before
+		// parsing so existing Lite profiles start without an argv warning.
+		const repairedArgvConfigContent = argvConfigContent.replace(/^(\s*\{)\s*,/, '$1');
+		if (repairedArgvConfigContent !== argvConfigContent) {
+			fs.writeFileSync(argvConfigPath, repairedArgvConfigContent);
+		}
+		argvConfig = parse(repairedArgvConfigContent);
 	} catch (error) {
 		if (error && error.code === 'ENOENT') {
 			createDefaultArgvConfigSync(argvConfigPath);
@@ -582,8 +591,14 @@ function configureCrashReporter(): void {
 
 function getJSFlags(cliArgs: NativeParsedArgs, argvConfig: IArgvConfig): string | null {
 	const jsFlags: string[] = [];
-	if (product.taxCodeDefaultMaxOldSpaceSize) {
-		jsFlags.push(`--max-old-space-size=${product.taxCodeDefaultMaxOldSpaceSize}`);
+	const configuredTaxCodeMemoryLimit = argvConfig['taxcode-memory-limit'];
+	const taxCodeMemoryLimit = product.taxCodeLowMemoryMode
+		&& typeof configuredTaxCodeMemoryLimit === 'number'
+		&& product.taxCodeMemoryLimitOptions?.includes(configuredTaxCodeMemoryLimit)
+		? configuredTaxCodeMemoryLimit
+		: product.taxCodeDefaultMaxOldSpaceSize;
+	if (taxCodeMemoryLimit) {
+		jsFlags.push(`--max-old-space-size=${taxCodeMemoryLimit}`);
 	}
 
 	// Add any existing JS flags we already got from the command line
